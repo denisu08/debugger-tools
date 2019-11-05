@@ -13,6 +13,9 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static com.wirecard.tools.debugger.jdiscript.util.Utils.unchecked;
 import static java.lang.String.format;
 
@@ -20,37 +23,48 @@ import static java.lang.String.format;
 public class DebuggerController {
 
     private static final Logger logger = LoggerFactory.getLogger(DebuggerController.class);
+    private Map<String, JDIScript> jdiContainer;
 
     private final SimpMessagingTemplate messagingTemplate;
-
     private int counter = 0;
 
     public DebuggerController(SimpMessagingTemplate _template) {
         this.messagingTemplate = _template;
+        this.jdiContainer = new HashMap();
     }
 
-    public static void main(final String[] args) {
-
+    /*public static void main(final String[] args) {
         String OPTIONS = ExampleConstant.CLASSPATH_CLASSES;
         String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE);
-
         JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
-
         j.onFieldAccess("com.wirecard.tools.debugger.jdiscript.example.HelloWorld", "helloTo", e -> {
             j.onStepInto(e.thread(), j.once(se -> {
                 unchecked(() -> e.object().setValue(e.field(),
                         j.vm().mirrorOf("JDIScript!")));
             }));
         });
-
         j.run();
-    }
+    }*/
 
     @MessageMapping("/debugger/{serviceId}")
     public void attach(@DestinationVariable String serviceId, @Payload DebugMessage debugMessage, SimpMessageHeaderAccessor headerAccessor) {
         switch (debugMessage.getType()) {
             case CONNECT:
                 logger.info("attach: " + debugMessage);
+
+                if (!jdiContainer.containsKey(serviceId)) {
+                    String OPTIONS = ExampleConstant.CLASSPATH_CLASSES;
+                    String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE);
+                    JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
+                    j.onFieldAccess("com.wirecard.tools.debugger.jdiscript.example.HelloWorld", "helloTo", e -> {
+                        j.onStepInto(e.thread(), j.once(se -> {
+                            unchecked(() -> e.object().setValue(e.field(),
+                                    j.vm().mirrorOf("JDIScript!")));
+                        }));
+                    });
+                    jdiContainer.put(serviceId, j);
+                }
+
                 messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), "is_connect::true");
                 break;
             case DISCONNECT:
@@ -61,12 +75,18 @@ public class DebuggerController {
             case NEXT:
                 logger.info("next: " + debugMessage);
                 counter++;
-                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), format("is_connect::#clb::%s)", counter));
+
+                if (jdiContainer.containsKey(serviceId)) {
+                    JDIScript jdiScript = jdiContainer.get(serviceId);
+                    jdiScript.run();
+                }
+
+                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), format("clb::%s)", counter));
                 break;
             case RESUME:
                 logger.info("resume: " + debugMessage);
                 counter = 0;
-                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), format("is_connect::#clb::%s)", counter));
+                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), format("clb::%s)", counter));
                 break;
             case SET_BREAKPOINT:
                 String currentRoomId = (String) headerAccessor.getSessionAttributes().put("service_id", serviceId);

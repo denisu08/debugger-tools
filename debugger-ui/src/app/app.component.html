@@ -1,0 +1,124 @@
+<!--The content below is only a placeholder and can be replaced.-->
+<
+<noscript><h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websocket relies on Javascript being
+  enabled. Please enable
+  Javascript and reload this page!</h2></noscript>
+<div id="main-content" class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <form class="form-inline">
+        <div class="form-group">
+          <label for="ipValue">Remote:&nbsp;</label>
+          <input type="text" style="max-width: 150px;" [(ngModel)]="ipValue" class="form-control" name="ipValue"
+                 id="ipValue" mask="IP" placeholder="ip" [disabled]="isFlag(COMMAND_PARAM.IS_CONNECT)">
+          <input type="text" style="max-width: 80px;" [(ngModel)]="portValue" class="form-control" name="portValue"
+                 id="portValue" maxlength="5" placeholder="port" [disabled]="isFlag(COMMAND_PARAM.IS_CONNECT)">
+        </div>
+      </form>
+    </div>
+    <div class="col-md-6 btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
+      <div class="btn-group mr-2" role="group" aria-label="Second group">
+        <button [class]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'btn btn-danger' : 'btn btn-success'"
+                (click)="isFlag(COMMAND_PARAM.IS_CONNECT) ? executeAction(COMMAND_TYPE.DISCONNECT) : executeAction(COMMAND_TYPE.CONNECT)"
+                [title]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'Stop' : 'Debug'" [disabled]="!isConnected()">
+          <i [class]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'fa fa-stop' : 'fa fa-play'"></i>
+        </button>
+      </div>
+      <div class="btn-group mr-2" role="group" aria-label="Second group">
+        <button type="button" class="btn btn-info" title="Next" [disabled]="!isConnected()"
+                (click)="executeAction(COMMAND_TYPE.NEXT)">
+          <i [class]="'fa fa-step-forward'"></i>
+        </button>
+        <button type="button" class="btn btn-info" title="Resume" [disabled]="!isConnected()"
+                (click)="executeAction(COMMAND_TYPE.RESUME)">
+          <i [class]="'fa fa-forward'"></i>
+        </button>
+      </div>
+      <div class="btn-group" role="group" aria-label="Third group">
+        <button type="button" [class]="isFlag(COMMAND_PARAM.IS_MUTE) ? 'btn btn-info active' : 'btn btn-info'"
+                [disabled]="!isConnected()"
+                title="Mute breakpoint" (click)="executeAction(COMMAND_TYPE.MUTE)">
+          <i [class]="isFlag(COMMAND_PARAM.IS_MUTE) ? 'fa fa-unlink' : 'fa fa-link'"></i>
+        </button>
+      </div>
+    </div>
+    <br/>
+    <hr/>
+    <br/>
+    <div class="row">
+      <!-- List function -->
+      <div class="col-md-6">
+        Selected Stages:
+        <hr/>
+        <table class="table table-hover">
+          <thead>
+          <tr>
+            <th scope="col" *ngIf="isFlag(COMMAND_PARAM.IS_CONNECT)"></th>
+            <th scope="col">#</th>
+            <th scope="col">Name</th>
+            <th scope="col">Stage</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let brPoint of getBreakpoints() ; let i = index"
+              [class]="brPoint.line === getCurrentLineBreakpoint() ? 'info' : ''">
+            <td *ngIf="isFlag(COMMAND_PARAM.IS_CONNECT)">
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" value="isDebug" id="flag-1" name="flag-1" [checked]="brPoint.isDebug"
+                         (change)="executeAction(COMMAND_TYPE.SET_BREAKPOINT, { 'line': brPoint.line, 'flag': $event.target.checked })">
+                  <span class="cr"><i class="cr-icon fa fa-circle"></i></span>
+                </label>
+              </div>
+            </td>
+            <th scope="row">{{brPoint.line}}</th>
+            <td>{{brPoint.name}}</td>
+            <td>{{brPoint.stage}}</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Watcher Variable -->
+      <div class="col-md-6">
+        Variables:
+        <hr/>
+        <table class="table table-hover">
+          <thead>
+          <tr>
+            <th scope="col">Key</th>
+            <th scope="col">Value</th>
+            <th scope="col" class="text-right">
+              <button type="button" class="btn btn-success btn-sm" title="Add Variable Watch"
+                      [disabled]="!isConnected()" (click)="addVariable()">
+                <i [class]="'fa fa-plus'"></i>
+              </button>
+            </th>
+          </tr>
+          </thead>
+          <tbody *ngIf="isShowVariable()">
+
+          <tr *ngFor="let variable of getVariables(); let i = index">
+            <td>{{variable.key}}</td>
+            <td *ngIf="variable.isSystem" colspan="2">
+              {{variable.value}}
+            </td>
+            <td *ngIf="!variable.isSystem">
+              {{ this.webSocketAPI.queryDataByKey(COMMAND_PARAM.CURRENT_LINE_BREAKPOINT) > 0 ? variable.value : ''}}
+            </td>
+            <td *ngIf="!variable.isSystem" class="text-right">
+              <button type="button" class="btn btn-danger btn-sm" title="Remove watcher" [disabled]="!isConnected()"
+                      (click)="deleteVariable(variable.key)">
+                <i [class]="'fa fa-trash'"></i>
+              </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<router-outlet></router-outlet>
