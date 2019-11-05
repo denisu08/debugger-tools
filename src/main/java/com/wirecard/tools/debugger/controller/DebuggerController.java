@@ -1,5 +1,8 @@
 package com.wirecard.tools.debugger.controller;
 
+import com.wirecard.tools.debugger.jdiscript.JDIScript;
+import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
+import com.wirecard.tools.debugger.jdiscript.util.VMLauncher;
 import com.wirecard.tools.debugger.model.DebugMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import static com.wirecard.tools.debugger.jdiscript.util.Utils.unchecked;
 import static java.lang.String.format;
 
 @Controller
@@ -23,6 +27,23 @@ public class DebuggerController {
 
     public DebuggerController(SimpMessagingTemplate _template) {
         this.messagingTemplate = _template;
+    }
+
+    public static void main(final String[] args) {
+
+        String OPTIONS = ExampleConstant.CLASSPATH_CLASSES;
+        String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE);
+
+        JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
+
+        j.onFieldAccess("com.wirecard.tools.debugger.jdiscript.example.HelloWorld", "helloTo", e -> {
+            j.onStepInto(e.thread(), j.once(se -> {
+                unchecked(() -> e.object().setValue(e.field(),
+                        j.vm().mirrorOf("JDIScript!")));
+            }));
+        });
+
+        j.run();
     }
 
     @MessageMapping("/debugger/{serviceId}")
