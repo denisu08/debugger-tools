@@ -27,11 +27,7 @@ export class WebSocketAPI {
       [this.COMMAND_PARAM.IS_MUTE]: false,
       [this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT]: this.DEFAULT_CURRENT_LINE_BREAKPOINT,
       [this.COMMAND_PARAM.BREAKPOINTS]: [],
-      [this.COMMAND_PARAM.GET_SYSTEM_VARIABLES]: {
-        session: 'SKJKBSDHBDJHKBSHBSUIY726SSD',
-        idx: '12',
-        flowId: 'PCCUploadFile'
-      },
+      [this.COMMAND_PARAM.GET_SYSTEM_VARIABLES]: {},
       [this.COMMAND_PARAM.GET_CUSTOM_VARIABLES]: {}
     };
     this.appComponent = appComponent;
@@ -179,8 +175,13 @@ export class WebSocketAPI {
     console.log('Message Receieved from Server :: ' + message);
     const bodyList = message.body.split('#');
     bodyList.forEach(e => {
-      const bodyMsg = e.split('::');
-      this.data[bodyMsg[0]] = bodyMsg[1];
+      if(e.indexOf('DataDebug{') >= 0) {
+        const updateData = e.replace(/DataDebug/, '');
+        console.log('dataDebug', JSON.parse(updateData));
+      } else {
+        const bodyMsg = e.split('::');
+        this.data[bodyMsg[0]] = bodyMsg[1];
+      }
     });
   }
 }

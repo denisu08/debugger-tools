@@ -12,8 +12,8 @@ export const COMMAND_TYPE = Object.freeze({
 export const COMMAND_PARAM = Object.freeze({
   IP: 'ip',
   PORT: 'port',
-  IS_CONNECT: 'is_connect',
-  IS_MUTE: 'is_mute',
+  IS_CONNECT: 'connect',
+  IS_MUTE: 'mute',
   CURRENT_LINE_BREAKPOINT: 'clb',
   BREAKPOINTS: 'brColl',
   GET_SYSTEM_VARIABLES: 'sysVar',

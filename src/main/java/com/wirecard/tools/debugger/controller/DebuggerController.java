@@ -1,9 +1,11 @@
 package com.wirecard.tools.debugger.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
 import com.wirecard.tools.debugger.jdiscript.util.VMLauncher;
+import com.wirecard.tools.debugger.model.DataDebug;
 import com.wirecard.tools.debugger.model.DebugMessage;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -28,7 +30,9 @@ import static java.lang.String.format;
 public class DebuggerController {
 
     private static final Logger logger = LoggerFactory.getLogger(DebuggerController.class);
-    private Map<String, JDIScript> jdiContainer;
+    private Map<String, DataDebug> jdiContainer;
+
+    private ObjectMapper om = new ObjectMapper();
 
     private final SimpMessagingTemplate messagingTemplate;
     private int counter = 0;
@@ -39,12 +43,13 @@ public class DebuggerController {
     }
 
     @MessageMapping("/debugger/{serviceId}")
-    public void attach(@DestinationVariable String serviceId, @Payload DebugMessage debugMessage, SimpMessageHeaderAccessor headerAccessor) {
+    public void attach(@DestinationVariable String serviceId, @Payload DebugMessage debugMessage, SimpMessageHeaderAccessor headerAccessor) throws JsonProcessingException {
         switch (debugMessage.getType()) {
             case CONNECT:
                 logger.info("attach: " + debugMessage);
-
                 if (!jdiContainer.containsKey(serviceId)) {
+                    // need to set ip & port
+                    DataDebug dataDebug = new DataDebug();
                     String OPTIONS = ExampleConstant.CLASSPATH_CLASSES;
                     String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE);
                     JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
@@ -54,14 +59,16 @@ public class DebuggerController {
                                     j.vm().mirrorOf("JDIScript!")));
                         }));
                     });
-                    jdiContainer.put(serviceId, j);
+                    dataDebug.setJdiScript(j);
+                    jdiContainer.put(serviceId, dataDebug);
                 }
 
-                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), "is_connect::true");
+                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), "is_connect::true#" + om.writeValueAsString(jdiContainer.get(serviceId)));
                 break;
             case DISCONNECT:
                 logger.info("detached: " + debugMessage);
                 counter = 0;
+                // remove & clean dataDebug from specific key
                 messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), format("is_connect::#clb::%s", counter));
                 break;
             case NEXT:
@@ -69,7 +76,7 @@ public class DebuggerController {
                 counter++;
 
                 if (jdiContainer.containsKey(serviceId)) {
-                    JDIScript jdiScript = jdiContainer.get(serviceId);
+                    JDIScript jdiScript = jdiContainer.get(serviceId).getJdiScript();
                     jdiScript.run();
                 }
 
