@@ -25,18 +25,18 @@
         </button>
       </div>
       <div class="btn-group mr-2" role="group" aria-label="Second group">
-        <button type="button" class="btn btn-info" title="Next" [disabled]="!isConnected()"
+        <button type="button" class="btn btn-info" title="Next" [disabled]="!isDebugConnected()"
                 (click)="executeAction(COMMAND_TYPE.NEXT)">
           <i [class]="'fa fa-step-forward'"></i>
         </button>
-        <button type="button" class="btn btn-info" title="Resume" [disabled]="!isConnected()"
+        <button type="button" class="btn btn-info" title="Resume" [disabled]="!isDebugConnected()"
                 (click)="executeAction(COMMAND_TYPE.RESUME)">
           <i [class]="'fa fa-forward'"></i>
         </button>
       </div>
       <div class="btn-group" role="group" aria-label="Third group">
         <button type="button" [class]="isFlag(COMMAND_PARAM.IS_MUTE) ? 'btn btn-info active' : 'btn btn-info'"
-                [disabled]="!isConnected()"
+                [disabled]="!isDebugConnected()"
                 title="Mute breakpoint" (click)="executeAction(COMMAND_TYPE.MUTE)">
           <i [class]="isFlag(COMMAND_PARAM.IS_MUTE) ? 'fa fa-unlink' : 'fa fa-link'"></i>
         </button>

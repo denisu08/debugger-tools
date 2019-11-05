@@ -10,6 +10,8 @@ import {FormsModule} from '@angular/forms'
 import {AngularFontAwesomeModule} from 'angular-font-awesome';
 import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
 
+import {HttpClientModule} from '@angular/common/http';
+
 export let options: Partial<IConfig> | (() => Partial<IConfig>);
 
 @NgModule({
@@ -20,6 +22,7 @@ export let options: Partial<IConfig> | (() => Partial<IConfig>);
   imports: [
     NgbModule,
     BrowserModule,
+    HttpClientModule,
     AppRoutingModule,
     FormsModule,
     AngularFontAwesomeModule,

@@ -2,6 +2,7 @@ import {Component, ChangeDetectorRef, OnInit, OnDestroy} from '@angular/core';
 import {NgbModal, NgbModalOptions} from '@ng-bootstrap/ng-bootstrap';
 import {AddVariableModalComponent} from 'src/add-variable-modal/add-variable-modal.component';
 import {COMMAND_TYPE, COMMAND_PARAM} from 'src/util/app-constant';
+import {HttpClient} from '@angular/common/http';
 import {WebSocketAPI} from './WebSocketAPI';
 
 @Component({
@@ -26,7 +27,7 @@ export class AppComponent implements OnInit, OnDestroy {
   // roomId === serviceId
   roomId = 'BOFrontEndUserManagerService';    // dummy
 
-  constructor(private cdr: ChangeDetectorRef, public modalService: NgbModal) {
+  constructor(private cdr: ChangeDetectorRef, public modalService: NgbModal, public httpClient: HttpClient) {
     vex.defaultOptions.className = 'vex-theme-os';
   }
 
@@ -46,6 +47,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   isConnected() {
     return this.webSocketAPI.isConnected;
+  }
+
+  isDebugConnected() {
+    return this.webSocketAPI.isConnected && this.isFlag(COMMAND_PARAM.IS_CONNECT);
   }
 
   executeAction(command, pData = {}) {

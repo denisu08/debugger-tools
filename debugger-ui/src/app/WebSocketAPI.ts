@@ -4,8 +4,9 @@ import {AppComponent} from './app.component';
 import {COMMAND_TYPE, COMMAND_PARAM} from 'src/util/app-constant';
 
 export class WebSocketAPI {
-  webSocketEndPoint: string = 'http://localhost:8080/ws';
-  baseTopic: string = '/app/debugger/#{param}';
+  basePATH = 'http://localhost:8080';
+  webSocketEndPoint = `${this.basePATH}/ws`;
+  baseTopic = '/app/debugger/#{param}';
   stompClient: any;
   appComponent: AppComponent;
   data: any;
@@ -25,17 +26,13 @@ export class WebSocketAPI {
       [this.COMMAND_PARAM.IS_CONNECT]: false,
       [this.COMMAND_PARAM.IS_MUTE]: false,
       [this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT]: this.DEFAULT_CURRENT_LINE_BREAKPOINT,
-      [this.COMMAND_PARAM.BREAKPOINTS]: [
-        {line: 1, name: 'setValueUserId', stage: 'Call Function', isDebug: false},
-        {line: 2, name: 'setValueUserName', stage: 'Call Function', isDebug: true},
-        {line: 3, name: 'setCurrentPage', stage: 'Operation', isDebug: true},
-      ],
+      [this.COMMAND_PARAM.BREAKPOINTS]: [],
       [this.COMMAND_PARAM.GET_SYSTEM_VARIABLES]: {
         session: 'SKJKBSDHBDJHKBSHBSUIY726SSD',
         idx: '12',
         flowId: 'PCCUploadFile'
       },
-      [this.COMMAND_PARAM.GET_CUSTOM_VARIABLES]: {username: 'test'}
+      [this.COMMAND_PARAM.GET_CUSTOM_VARIABLES]: {}
     };
     this.appComponent = appComponent;
     this.isConnected = false;
@@ -68,6 +65,16 @@ export class WebSocketAPI {
       that.stompClient.heartbeat.incoming = 0;
       that.stompClient.reconnect_delay = 2000;
       that.isConnected = true;
+
+      that.appComponent.httpClient.get(`${that.basePATH}/api/service/${that.serviceId}`, {
+        observe: 'response'
+      })
+        .toPromise()
+        .then(response => {
+          this.data[this.COMMAND_PARAM.BREAKPOINTS] = response.body;
+        })
+        .catch(console.log);
+
       that.appComponent._forceDraw();
     }, this.errorCallBack.bind(this));
   }
