@@ -1,24 +1,38 @@
 package com.wirecard.tools.debugger.model;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DataDebug {
 
-    private String ip = "";
-    private String port = "";
-    private boolean connect = false;
-    private boolean mute = false;
-    private String clb = "";
-    private String brColl = "";
+    private String ip;
+    private int port;
+    private boolean connect;
+    private boolean mute;
+    private int clb;
+    private List brColl;
     private Map sysVar;
     private Map custVar;
+
+    @JsonIgnore
     private JDIScript jdiScript;
 
     public DataDebug() {
+        this.brColl = new ArrayList<>();
+        this.clear();
+    }
+
+    public void clear() {
+        this.ip = "";
+        this.port = 0;
+        this.connect = false;
+        this.mute = false;
+        this.clb = 0;
         this.sysVar = new HashMap();
         this.custVar = new HashMap();
     }
@@ -39,13 +53,6 @@ public class DataDebug {
         this.ip = ip;
     }
 
-    public String getPort() {
-        return port;
-    }
-
-    public void setPort(String port) {
-        this.port = port;
-    }
 
     public boolean isConnect() {
         return connect;
@@ -63,19 +70,27 @@ public class DataDebug {
         this.mute = mute;
     }
 
-    public String getClb() {
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public int getClb() {
         return clb;
     }
 
-    public void setClb(String clb) {
+    public void setClb(int clb) {
         this.clb = clb;
     }
 
-    public String getBrColl() {
+    public List getBrColl() {
         return brColl;
     }
 
-    public void setBrColl(String brColl) {
+    public void setBrColl(List brColl) {
         this.brColl = brColl;
     }
 
@@ -93,6 +108,11 @@ public class DataDebug {
 
     public void setCustVar(Map custVar) {
         this.custVar = custVar;
+    }
+
+    public void clearAndDisconnect() {
+        getJdiScript().vm().exit(0);
+        this.clear();
     }
 
     @Override

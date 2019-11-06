@@ -19,7 +19,7 @@
     <div class="col-md-6 btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
       <div class="btn-group mr-2" role="group" aria-label="Second group">
         <button [class]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'btn btn-danger' : 'btn btn-success'"
-                (click)="isFlag(COMMAND_PARAM.IS_CONNECT) ? executeAction(COMMAND_TYPE.DISCONNECT) : executeAction(COMMAND_TYPE.CONNECT)"
+                (click)="isFlag(COMMAND_PARAM.IS_CONNECT) ? executeAction(COMMAND_TYPE.DISCONNECT) : executeAction(COMMAND_TYPE.CONNECT, {ip: ipValue, port: portValue})"
                 [title]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'Stop' : 'Debug'" [disabled]="!isConnected()">
           <i [class]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'fa fa-stop' : 'fa fa-play'"></i>
         </button>

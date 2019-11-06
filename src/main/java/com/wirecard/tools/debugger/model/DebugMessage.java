@@ -8,7 +8,7 @@ public class DebugMessage {
     }
 
     private CommandType messageType;
-    private Map content;
+    private String content;
     private String stageId;
 
     public CommandType getType() {
@@ -19,11 +19,11 @@ public class DebugMessage {
         this.messageType = messageType;
     }
 
-    public Map getContent() {
+    public String getContent() {
         return content;
     }
 
-    public void setContent(Map content) {
+    public void setContent(String content) {
         this.content = content;
     }
 

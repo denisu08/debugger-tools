@@ -102,18 +102,23 @@ export class WebSocketAPI {
 
   _executeAction(commandType: string, roomId: string, pData: any) {
     console.log('_executeAction: ' + commandType, roomId, pData);
+    const payload = {};
     switch (commandType) {
       case this.COMMAND_TYPE.CONNECT:
+        payload[COMMAND_PARAM.IP] = pData.ip;
+        payload[COMMAND_PARAM.PORT] = pData.port;
+        payload[COMMAND_PARAM.BREAKPOINTS] = this.data[COMMAND_PARAM.BREAKPOINTS];
+        break;
       case this.COMMAND_TYPE.DISCONNECT:
+        break;
       case this.COMMAND_TYPE.RESUME:    // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
+        break;
       case this.COMMAND_TYPE.NEXT:      // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] += 1;
-        this._sendCommand(roomId, {type: commandType});
         break;
       case this.COMMAND_TYPE.MUTE:
-        this.data[this.COMMAND_PARAM.IS_MUTE] = !this.data[this.COMMAND_PARAM.IS_MUTE];
         break;
       case this.COMMAND_TYPE.SET_BREAKPOINT:
-        this.setBreakpoint(pData.line, pData.flag);
+        payload[COMMAND_PARAM.BREAKPOINTS] = this.changeBreakpoint(pData.line, pData.flag);
         break;
       case this.COMMAND_TYPE.ADD_VARIABLE:
         this.addVariable(pData);
@@ -124,6 +129,8 @@ export class WebSocketAPI {
       default:
         break;
     }
+    // send command to backend
+    this._sendCommand(roomId, {type: commandType, content: btoa(JSON.stringify(payload))});
   }
 
   _sendCommand(roomId: string, body: any) {
@@ -134,12 +141,14 @@ export class WebSocketAPI {
     );
   }
 
-  setBreakpoint(pLine, pFlag) {
-    this.data[this.COMMAND_PARAM.BREAKPOINTS].forEach(e => {
+  changeBreakpoint(pLine, pFlag) {
+    const newBreakpoints = [].concat(this.data[this.COMMAND_PARAM.BREAKPOINTS]);
+    newBreakpoints.forEach(e => {
       if (e.line === pLine) {
         e.isDebug = pFlag;
       }
     });
+    return newBreakpoints;
   }
 
   addVariable(pData) {
@@ -173,15 +182,6 @@ export class WebSocketAPI {
 
   onMessageReceived(message) {
     console.log('Message Receieved from Server :: ' + message);
-    const bodyList = message.body.split('#');
-    bodyList.forEach(e => {
-      if(e.indexOf('DataDebug{') >= 0) {
-        const updateData = e.replace(/DataDebug/, '');
-        console.log('dataDebug', JSON.parse(updateData));
-      } else {
-        const bodyMsg = e.split('::');
-        this.data[bodyMsg[0]] = bodyMsg[1];
-      }
-    });
+    this.data = JSON.parse(message.body);
   }
 }
