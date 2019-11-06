@@ -24,7 +24,7 @@ public class ServiceController {
 
     @GetMapping(value = "/${spring.data.rest.base-path}/service/{serviceId}")
     public List queryServiceById(@DestinationVariable String serviceId) {
-        JSONArray result = gson.fromJson("[{\"line\":\"1\",\"name\":\"setValueUserId\",\"stage\":\"Call Function\",\"isDebug\":false},{\"line\":\"2\",\"name\":\"setValueUserName\",\"stage\":\"Call Function\",\"isDebug\":false},{\"line\":\"3\",\"name\":\"setCurrentPage\",\"stage\":\"Operation\",\"isDebug\":false}]", JSONArray.class);
+        JSONArray result = gson.fromJson("[{\"line\":1,\"name\":\"setValueUserId\",\"stage\":\"Call Function\",\"isDebug\":false},{\"line\":2,\"name\":\"setValueUserName\",\"stage\":\"Call Function\",\"isDebug\":false},{\"line\":3,\"name\":\"setCurrentPage\",\"stage\":\"Operation\",\"isDebug\":false}]", JSONArray.class);
         return result;
     }
 }

@@ -3,6 +3,9 @@ package com.wirecard.tools.debugger.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.jdi.*;
+import com.sun.jdi.request.EventRequestManager;
+import com.wirecard.tools.debugger.common.Utils;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
 import com.wirecard.tools.debugger.jdiscript.util.VMLauncher;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Controller;
 
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.wirecard.tools.debugger.jdiscript.util.Utils.unchecked;
@@ -41,11 +45,11 @@ public class DebuggerController {
     }
 
     @MessageMapping("/debugger/{serviceId}")
-    public void attach(@DestinationVariable String serviceId, @Payload DebugMessage debugMessage, SimpMessageHeaderAccessor headerAccessor) throws JsonProcessingException {
+    public void attach(@DestinationVariable String serviceId, @Payload DebugMessage debugMessage, SimpMessageHeaderAccessor headerAccessor) throws Exception {
 
         DataDebug dataDebug = jdiContainer.get(serviceId);
         String plainContent = new String(Base64.getDecoder().decode(debugMessage.getContent()));
-        DataDebug dataDebugFromClient =  this.om.readValue(plainContent, DataDebug.class);
+        DataDebug dataDebugFromClient = this.om.readValue(plainContent, DataDebug.class);
 
         switch (debugMessage.getType()) {
             case CONNECT:
@@ -57,10 +61,42 @@ public class DebuggerController {
                     String OPTIONS = ExampleConstant.CLASSPATH_CLASSES;
                     String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE);
                     JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
+                    DataDebug finalDataDebug = dataDebug;
+//                    j.vmDeathRequest(event -> {
+//                        finalDataDebug.clearAndDisconnect();
+//                        jdiContainer.remove(serviceId);
+//                    });
                     j.onFieldAccess("com.wirecard.tools.debugger.jdiscript.example.HelloWorld", "helloTo", e -> {
                         j.onStepInto(e.thread(), j.once(se -> {
-                            unchecked(() -> e.object().setValue(e.field(),
-                                    j.vm().mirrorOf("JDIScript!")));
+                            // unchecked(() -> e.object().setValue(e.field(), j.vm().mirrorOf("JDIScript!")));
+                            try {
+                                List<Field> childFields = e.location().declaringType().allFields();
+                                StackFrame stackFrame = e.thread().frame(0);
+                                Map sysVar = new HashMap<>();
+                                for (Field childField : childFields) {
+                                    // ReferenceType type = stackFrame.location().declaringType();
+                                    // LocalVariable localVar = stackFrame.visibleVariableByName(childField.name());
+                                    // Value val = stackFrame.getValue(localVar);
+                                    // Value val = type.getValue(childField);
+                                    Value val = stackFrame.thisObject().getValue(childField);
+                                    sysVar.put(childField.name(), Utils.getJavaValue(val));
+                                }
+                                finalDataDebug.setSysVar(sysVar);
+                                finalDataDebug.setClb(1);
+                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(finalDataDebug));
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+
+
+//                            System.out.println("onStepInto" + se);
+//                            try {
+//                                e.object().setValue(e.field(), j.vm().mirrorOf("JDIScript!"));
+//                                finalDataDebug.setClb(finalDataDebug.getClb() + 1);
+//                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(finalDataDebug));
+//                            } catch (Exception ex) {
+//                                ex.printStackTrace();
+//                            }
                         }));
                     });
                     dataDebug.setJdiScript(j);
@@ -78,12 +114,12 @@ public class DebuggerController {
                 break;
             case NEXT:
                 logger.info("next: " + debugMessage);
-                dataDebug.setClb(dataDebug.getClb() + 1);
+                // dataDebug.setClb(dataDebug.getClb() + 1);
                 dataDebug.getJdiScript().run();
                 break;
             case RESUME:
                 logger.info("resume: " + debugMessage);
-                counter = 0;
+                dataDebug.getJdiScript().run();
                 break;
             case SET_BREAKPOINT:
                 logger.info("set breakpoint: " + debugMessage);

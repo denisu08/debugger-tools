@@ -104,18 +104,15 @@ export class WebSocketAPI {
     console.log('_executeAction: ' + commandType, roomId, pData);
     const payload = {};
     switch (commandType) {
+      case this.COMMAND_TYPE.DISCONNECT:
+      case this.COMMAND_TYPE.RESUME:    // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
+      case this.COMMAND_TYPE.NEXT:      // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] += 1;
+      case this.COMMAND_TYPE.MUTE:
+        break;
       case this.COMMAND_TYPE.CONNECT:
         payload[COMMAND_PARAM.IP] = pData.ip;
         payload[COMMAND_PARAM.PORT] = pData.port;
         payload[COMMAND_PARAM.BREAKPOINTS] = this.data[COMMAND_PARAM.BREAKPOINTS];
-        break;
-      case this.COMMAND_TYPE.DISCONNECT:
-        break;
-      case this.COMMAND_TYPE.RESUME:    // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
-        break;
-      case this.COMMAND_TYPE.NEXT:      // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] += 1;
-        break;
-      case this.COMMAND_TYPE.MUTE:
         break;
       case this.COMMAND_TYPE.SET_BREAKPOINT:
         payload[COMMAND_PARAM.BREAKPOINTS] = this.changeBreakpoint(pData.line, pData.flag);

@@ -24,6 +24,10 @@ public class HelloWorld {
         this.helloTo = helloTo;
     }
 
+    public String getHelloTo() {
+        return helloTo;
+    }
+
     public static void main(String[] args) {
         HelloWorld hello;
 
