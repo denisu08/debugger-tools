@@ -1,11 +1,8 @@
 package com.wirecard.tools.debugger.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jdi.*;
-import com.sun.jdi.request.EventRequestManager;
-import com.sun.tools.jdi.LocalVariableImpl;
 import com.wirecard.tools.debugger.common.Utils;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
@@ -27,8 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static com.wirecard.tools.debugger.jdiscript.util.Utils.unchecked;
 import static java.lang.String.format;
+
+// https://itsallbinary.com/java-debug-interface-api-jdi-hello-world-example-programmatic-stepping-through-the-code-lines/
+// https://dzone.com/articles/monitoring-classloading-jdi
+// https://www.element84.com/blog/jdi-mind-tricks
+// https://www.baeldung.com/java-debug-interface
 
 @Controller
 public class DebuggerController {
