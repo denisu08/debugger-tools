@@ -14,7 +14,7 @@ public class HelloWorldExample {
 
         JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
 
-        j.onFieldAccess("com.wirecard.tools.debugger.jdiscript.example.HelloWorld", "helloTo", e -> {
+        j.onFieldAccess(MAIN, "helloTo", e -> {
             j.onStepInto(e.thread(), j.once(se -> {
                 unchecked(() -> e.object().setValue(e.field(),
                         j.vm().mirrorOf("JDIScript!")));

@@ -15,23 +15,25 @@ public class VMSocketAttacher {
     private final String host;
     private final int port;
     private final int timeout;
+    private final String options;
 
     public VMSocketAttacher(int port) {
         this(null, port);
     }
 
     public VMSocketAttacher(int port, int timeout) {
-        this(null, port, timeout);
+        this(null, port, timeout, "");
     }
 
     public VMSocketAttacher(String host, int port) {
-        this(host, port, 0);
+        this(host, port, 0, "");
     }
 
-    public VMSocketAttacher(String host, int port, int timeout) {
+    public VMSocketAttacher(String host, int port, int timeout, String options) {
         this.host = host;
         this.port = port;
         this.timeout = timeout;
+        this.options = options;
     }
 
     public VirtualMachine safeAttach()
@@ -47,6 +49,7 @@ public class VMSocketAttacher {
         }
         Map<String, Argument> cArgs = connector.defaultArguments();
         cArgs.get("port").setValue(Integer.toString(port));
+        cArgs.get("options").setValue(options);
         cArgs.get("timeout").setValue(Integer.toString(timeout));
         if(host != null) {
             cArgs.get("hostname").setValue(host);

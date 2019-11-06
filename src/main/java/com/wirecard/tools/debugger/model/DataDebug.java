@@ -112,9 +112,10 @@ public class DataDebug {
 
     public void clearAndDisconnect() {
         this.clear();
-        try {
-            if (this.jdiScript != null || this.jdiScript.vm().process().isAlive()) getJdiScript().vm().exit(0);
-        } catch (Exception ex) {}
+//        try {
+//            if (this.jdiScript != null || this.jdiScript.vm().process().isAlive()) getJdiScript().vm().exit(0);
+//        } catch (Exception ex) {}
+        this.getJdiScript().vm().resume();
         this.jdiScript = null;
     }
 

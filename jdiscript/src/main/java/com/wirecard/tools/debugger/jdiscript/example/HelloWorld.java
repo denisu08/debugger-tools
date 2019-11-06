@@ -28,7 +28,7 @@ public class HelloWorld {
         return helloTo;
     }
 
-    public static void main(String[] args) {
+    public void startMe() {
         HelloWorld hello;
 
         hello = new HelloWorld();
@@ -41,5 +41,9 @@ public class HelloWorld {
         hello = new HelloWorld("Fred", "Wilma");
         System.out.println(hello.sayHello());
         System.out.println(hello.sayHello());
+    }
+
+    public static void main(String[] args) {
+        new HelloWorld().startMe();
     }
 }

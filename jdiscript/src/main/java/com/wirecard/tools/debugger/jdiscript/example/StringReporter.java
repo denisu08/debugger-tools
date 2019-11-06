@@ -69,7 +69,7 @@ class StringReporter {
     OnBreakpoint breakpoint; { breakpoint = be -> {
         ThreadReference tref = be.thread();
         unchecked(() -> {
-            Location pkgCaller = nearestCaller("org.jdiscript", tref);
+            Location pkgCaller = nearestCaller(ExampleConstant.BASE_PACKAGE, tref);
             if(pkgCaller == null) {
                 return;
             }
