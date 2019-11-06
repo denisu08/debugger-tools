@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jdi.*;
 import com.sun.jdi.request.EventRequestManager;
-import com.sun.jdi.request.StepRequest;
+import com.sun.tools.jdi.LocalVariableImpl;
 import com.wirecard.tools.debugger.common.Utils;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
@@ -52,6 +52,7 @@ public class DebuggerController {
         DataDebug dataDebug = jdiContainer.get(serviceId);
         String plainContent = new String(Base64.getDecoder().decode(debugMessage.getContent()));
         DataDebug dataDebugFromClient = this.om.readValue(plainContent, DataDebug.class);
+        boolean runCommand = true;
 
         switch (debugMessage.getType()) {
             case CONNECT:
@@ -94,19 +95,32 @@ public class DebuggerController {
                                 try {
                                     List<Location> locationList = m.allLineLocations();
                                     for (Location loc : locationList) {
-                                        j.stepRequest(loc.virtualMachine().allThreads().get(0), StepRequest.STEP_LINE, StepRequest.STEP_OVER, be -> {
+                                        j.breakpointRequest(loc, be -> {
                                             System.out.println("be: " + be);
                                             try {
+                                                // get field current class
                                                 List<Field> childFields = m.location().declaringType().allFields();
                                                 StackFrame stackFrame = be.thread().frame(0);
                                                 Map sysVar = new HashMap<>();
                                                 for (Field childField : childFields) {
                                                     Value val = stackFrame.thisObject().getValue(childField);
-                                                    sysVar.put(childField.name(), Utils.getJavaValue(val));
+                                                    sysVar.put(childField.name(), Utils.getJavaValue(val, be.thread()));
                                                 }
+
+                                                // get field local variable
+                                                List<LocalVariable> localVariables = loc.method().variables();
+                                                Map<String, LocalVariable> localVariableMap = new HashMap<>(localVariables.size());
+                                                for (LocalVariable variable : localVariables) {
+                                                    if (variable.isVisible(stackFrame)) {
+                                                        Value val = stackFrame.getValue(variable);
+                                                        sysVar.put(variable.name(), Utils.getJavaValue(val, be.thread()));
+                                                    }
+                                                }
+
                                                 finalDataDebug.setSysVar(sysVar);
                                                 finalDataDebug.setClb(1);
                                                 messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(finalDataDebug));
+                                                j.vm().suspend();
                                             } catch (Exception ex) {
                                                 ex.printStackTrace();
                                             }
@@ -145,6 +159,9 @@ public class DebuggerController {
 
                 dataDebug.setConnect(true);
                 jdiContainer.put(serviceId, dataDebug);
+                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(dataDebug));
+                dataDebug.getJdiScript().run();
+                runCommand = false;
                 break;
             case DISCONNECT:
                 logger.info("detached: " + debugMessage);
@@ -156,7 +173,7 @@ public class DebuggerController {
             case NEXT:
                 logger.info("next: " + debugMessage);
                 // dataDebug.setClb(dataDebug.getClb() + 1);
-                dataDebug.getJdiScript().vm().suspend();
+                dataDebug.getJdiScript().vm().resume();
                 break;
             case RESUME:
                 logger.info("resume: " + debugMessage);
@@ -178,6 +195,8 @@ public class DebuggerController {
                 break;
         }
 
-        messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(dataDebug));
+        if (runCommand) {
+            messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(dataDebug));
+        }
     }
 }

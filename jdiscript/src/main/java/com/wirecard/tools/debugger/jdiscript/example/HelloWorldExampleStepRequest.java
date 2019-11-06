@@ -30,8 +30,8 @@ public class HelloWorldExampleStepRequest {
                     StepRequest.STEP_OVER, e -> {
                         try {
                             StringReference alttobe = j.vm().mirrorOf("Groovy");
-                            it.request().disable();
                             obj.setValue(field, alttobe);
+                            it.request().disable();
                         } catch (Exception exc) {
                             exc.printStackTrace();
                         }

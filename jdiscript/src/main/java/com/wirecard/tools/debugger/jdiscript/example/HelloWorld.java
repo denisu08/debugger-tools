@@ -29,8 +29,8 @@ public class HelloWorld {
     }
 
     public void startMe() {
+        String dummy = "WowKeren";
         HelloWorld hello;
-
         hello = new HelloWorld();
         System.out.println(hello.sayHello());
         System.out.println(hello.sayHello());
@@ -41,6 +41,13 @@ public class HelloWorld {
         hello = new HelloWorld("Fred", "Wilma");
         System.out.println(hello.sayHello());
         System.out.println(hello.sayHello());
+    }
+
+    @Override
+    public String toString() {
+        return "HelloWorld{" +
+                "helloTo='" + helloTo + '\'' +
+                '}';
     }
 
     public static void main(String[] args) {
