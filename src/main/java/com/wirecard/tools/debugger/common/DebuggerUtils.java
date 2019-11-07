@@ -13,7 +13,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
-public class Utils {
+public class DebuggerUtils {
 
     private static Loader loader = new Loader() {
         @Override

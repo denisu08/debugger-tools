@@ -3,7 +3,7 @@ package com.wirecard.tools.debugger.controller;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jdi.*;
-import com.wirecard.tools.debugger.common.Utils;
+import com.wirecard.tools.debugger.common.DebuggerUtils;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
 import com.wirecard.tools.debugger.jdiscript.util.VMLauncher;
@@ -65,7 +65,7 @@ public class DebuggerController {
                     dataDebug = dataDebugFromClient;
 
                     String OPTIONS = ExampleConstant.CLASSPATH_CLASSES;
-                    System.out.println("decompile:: " + Utils.decompileCode(ExampleConstant.CLASSPATH_CLASSES));
+                    System.out.println("decompile:: " + DebuggerUtils.decompileCode("C:/Wirecard/CBB_Project/debugger-tools/HelloWorld.class"));
                     String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE);
                     JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
                     dataDebug.setJdiScript(j);
@@ -111,7 +111,7 @@ public class DebuggerController {
                                                 Map sysVar = new HashMap<>();
                                                 for (Field childField : childFields) {
                                                     Value val = stackFrame.thisObject().getValue(childField);
-                                                    sysVar.put(childField.name(), Utils.getJavaValue(val, be.thread()));
+                                                    sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
                                                 }
 
                                                 // get field local variable
@@ -120,7 +120,7 @@ public class DebuggerController {
                                                 for (LocalVariable variable : localVariables) {
                                                     if (variable.isVisible(stackFrame)) {
                                                         Value val = stackFrame.getValue(variable);
-                                                        sysVar.put(variable.name(), Utils.getJavaValue(val, be.thread()));
+                                                        sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
                                                     }
                                                 }
 
