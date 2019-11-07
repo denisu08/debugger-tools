@@ -55,6 +55,8 @@ public class DebuggerController {
         DataDebug dataDebugFromClient = this.om.readValue(plainContent, DataDebug.class);
         boolean runCommand = true;
 
+        // new jd.core.Decompiler().decompileClass("compiled.jar", "com/namespace/SomeClass.class");
+
         switch (debugMessage.getType()) {
             case CONNECT:
                 logger.info("attach: " + debugMessage);
@@ -63,9 +65,13 @@ public class DebuggerController {
                     dataDebug = dataDebugFromClient;
 
                     String OPTIONS = ExampleConstant.CLASSPATH_CLASSES;
+                    System.out.println("decompile:: " + Utils.decompileCode(ExampleConstant.CLASSPATH_CLASSES));
                     String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE);
                     JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
-                    DataDebug finalDataDebug = dataDebug;
+                    dataDebug.setJdiScript(j);
+                    jdiContainer.put(serviceId, dataDebug);
+
+
 //                    j.vmDeathRequest(event -> {
 //                        finalDataDebug.clearAndDisconnect();
 //                        jdiContainer.remove(serviceId);
@@ -118,13 +124,14 @@ public class DebuggerController {
                                                     }
                                                 }
 
-                                                finalDataDebug.setSysVar(sysVar);
-                                                finalDataDebug.setClb(1);
-                                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(finalDataDebug));
+                                                jdiContainer.get(serviceId).setSysVar(sysVar);
+                                                jdiContainer.get(serviceId).setClb(1);
+                                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(jdiContainer.get(serviceId)));
                                                 j.vm().suspend();
                                             } catch (Exception ex) {
                                                 ex.printStackTrace();
                                             }
+                                            jdiContainer.get(serviceId).getBreakpointEvents().add(be);
                                         }).setEnabled(true);
                                     }
                                 } catch (Exception ex) {
@@ -154,13 +161,10 @@ public class DebuggerController {
 //                            }
 //                        }));
 //                    });
-
-                    dataDebug.setJdiScript(j);
                 }
 
-                dataDebug.setConnect(true);
-                jdiContainer.put(serviceId, dataDebug);
-                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(dataDebug));
+                jdiContainer.get(serviceId).setConnect(true);
+                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(jdiContainer.get(serviceId)));
                 dataDebug.getJdiScript().run();
                 runCommand = false;
                 break;

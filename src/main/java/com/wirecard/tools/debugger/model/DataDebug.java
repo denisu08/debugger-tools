@@ -1,6 +1,7 @@
 package com.wirecard.tools.debugger.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.sun.jdi.event.BreakpointEvent;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 
 import java.util.ArrayList;
@@ -15,7 +16,10 @@ public class DataDebug {
     private boolean connect;
     private boolean mute;
     private int clb;
-    private List brColl;
+
+    private List<Map> brColl;
+    private List<BreakpointEvent> breakpointEvents;
+
     private Map sysVar;
     private Map custVar;
 
@@ -23,7 +27,8 @@ public class DataDebug {
     private JDIScript jdiScript;
 
     public DataDebug() {
-        this.brColl = new ArrayList<>();
+        this.brColl = new ArrayList<Map>();
+        this.breakpointEvents = new ArrayList<>();
         this.clear();
     }
 
@@ -35,6 +40,16 @@ public class DataDebug {
         this.clb = 0;
         this.sysVar = new HashMap();
         this.custVar = new HashMap();
+        this.breakpointEvents.clear();
+        if(brColl != null) {
+            for(Map br : brColl) {
+                br.put("isDebug", false);
+            }
+        }
+    }
+
+    public List<BreakpointEvent> getBreakpointEvents() {
+        return breakpointEvents;
     }
 
     public JDIScript getJdiScript() {
@@ -123,11 +138,12 @@ public class DataDebug {
     public String toString() {
         return "DataDebug{" +
                 "ip='" + ip + '\'' +
-                ", port='" + port + '\'' +
+                ", port=" + port +
                 ", connect=" + connect +
                 ", mute=" + mute +
-                ", clb='" + clb + '\'' +
-                ", brColl='" + brColl + '\'' +
+                ", clb=" + clb +
+                ", brColl=" + brColl +
+                ", breakpointEvents=" + breakpointEvents +
                 ", sysVar=" + sysVar +
                 ", custVar=" + custVar +
                 ", jdiScript=" + jdiScript +
