@@ -6,6 +6,7 @@ import com.sun.jdi.*;
 import com.wirecard.tools.debugger.common.DebuggerUtils;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
+import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 import com.wirecard.tools.debugger.jdiscript.util.VMLauncher;
 import com.wirecard.tools.debugger.model.DataDebug;
 import com.wirecard.tools.debugger.model.DebugMessage;
@@ -17,7 +18,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.CollectionUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -104,45 +104,51 @@ public class DebuggerController {
                     Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName("startMe").stream()
                             .filter(m -> m.location().declaringType().name().startsWith(ExampleConstant.BASE_PACKAGE_FROM_JAR))
                             .forEach(m -> {
-                                try {
-                                    List<Location> locationList = m.allLineLocations();
-                                    for (Location loc : locationList) {
-                                        j.breakpointRequest(loc, be -> {
-                                            System.out.println("be: " + be);
-                                            try {
-                                                // get field current class
-                                                List<Field> childFields = m.location().declaringType().allFields();
-                                                StackFrame stackFrame = be.thread().frame(0);
-                                                Map sysVar = new HashMap<>();
-                                                for (Field childField : childFields) {
-                                                    if (!childField.isStatic()) {
-                                                        Value val = stackFrame.thisObject().getValue(childField);
-                                                        sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
-                                                    }
-                                                }
+                                if (jdiContainer.containsKey(serviceId)) {
+                                    try {
+                                        List<Location> locationList = m.allLineLocations();
 
-                                                // get field local variable
-                                                List<LocalVariable> localVariables = loc.method().variables();
-                                                Map<String, LocalVariable> localVariableMap = new HashMap<>(localVariables.size());
-                                                for (LocalVariable variable : localVariables) {
-                                                    if (variable.isVisible(stackFrame)) {
-                                                        Value val = stackFrame.getValue(variable);
-                                                        sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
-                                                    }
-                                                }
+                                        // filter based on source code & stageList
 
-                                                jdiContainer.get(serviceId).setSysVar(sysVar);
-                                                jdiContainer.get(serviceId).setClb(1);
-                                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(jdiContainer.get(serviceId)));
-                                                j.vm().suspend();
-                                            } catch (Exception ex) {
-                                                ex.printStackTrace();
-                                            }
-                                            jdiContainer.get(serviceId).getBreakpointEvents().add(be);
-                                        }).setEnabled(true);
+                                        for (Location loc : locationList) {
+                                            ChainingBreakpointRequest chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
+                                                System.out.println("be: " + be);
+                                                try {
+                                                    // get field current class
+                                                    List<Field> childFields = m.location().declaringType().allFields();
+                                                    StackFrame stackFrame = be.thread().frame(0);
+                                                    Map sysVar = new HashMap<>();
+                                                    for (Field childField : childFields) {
+                                                        if (!childField.isStatic()) {
+                                                            Value val = stackFrame.thisObject().getValue(childField);
+                                                            sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                        }
+                                                    }
+
+                                                    // get field local variable
+                                                    List<LocalVariable> localVariables = loc.method().variables();
+                                                    Map<String, LocalVariable> localVariableMap = new HashMap<>(localVariables.size());
+                                                    for (LocalVariable variable : localVariables) {
+                                                        if (variable.isVisible(stackFrame)) {
+                                                            Value val = stackFrame.getValue(variable);
+                                                            sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                        }
+                                                    }
+
+                                                    jdiContainer.get(serviceId).setSysVar(sysVar);
+                                                    jdiContainer.get(serviceId).setClb(1);
+                                                    messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(jdiContainer.get(serviceId)));
+                                                    j.vm().suspend();
+                                                } catch (Exception ex) {
+                                                    ex.printStackTrace();
+                                                }
+                                            }).setEnabled(true);
+
+                                            jdiContainer.get(serviceId).addBreakpointEvents(debugMessage.getFunctionId(), chainingBreakpointRequest);
+                                        }
+                                    } catch (Exception ex) {
+                                        ex.printStackTrace();
                                     }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
                                 }
                             });
 
@@ -193,7 +199,7 @@ public class DebuggerController {
                 break;
             case SET_BREAKPOINT:
                 logger.info("set breakpoint: " + debugMessage);
-                dataDebug.setBrColl(dataDebugFromClient.getBrColl());
+                dataDebug.putBrColl(debugMessage.getFunctionId(), dataDebugFromClient.getBrColl(debugMessage.getFunctionId()));
             default:
                 /*String currentRoomId = (String) headerAccessor.getSessionAttributes().put("service_id", serviceId);
                 if (currentRoomId != null) {

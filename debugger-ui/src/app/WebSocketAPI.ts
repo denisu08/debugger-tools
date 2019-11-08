@@ -16,7 +16,7 @@ export class WebSocketAPI {
 
   readonly COMMAND_TYPE = COMMAND_TYPE;
   readonly COMMAND_PARAM = COMMAND_PARAM;
-  readonly DEFAULT_CURRENT_LINE_BREAKPOINT = 0;
+  readonly DEFAULT_CURRENT_LINE_BREAKPOINT = '-#0';
 
   constructor(appComponent: AppComponent) {
     this.data = {
@@ -24,10 +24,13 @@ export class WebSocketAPI {
       [this.COMMAND_PARAM.PORT]: '',
       [this.COMMAND_PARAM.IS_CONNECT]: false,
       [this.COMMAND_PARAM.IS_MUTE]: false,
+      // add segment to
       [this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT]: this.DEFAULT_CURRENT_LINE_BREAKPOINT,
-      [this.COMMAND_PARAM.BREAKPOINTS]: [],
-      [this.COMMAND_PARAM.GET_SYSTEM_VARIABLES]: {},
-      [this.COMMAND_PARAM.GET_CUSTOM_VARIABLES]: {}
+      [this.COMMAND_PARAM.FUNCTION]: {},
+      // [this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT]: this.DEFAULT_CURRENT_LINE_BREAKPOINT,
+      // [this.COMMAND_PARAM.BREAKPOINTS]: [],
+      // [this.COMMAND_PARAM.GET_SYSTEM_VARIABLES]: {},
+      // [this.COMMAND_PARAM.GET_CUSTOM_VARIABLES]: {}
     };
     this.appComponent = appComponent;
     this.isConnected = false;
@@ -65,7 +68,7 @@ export class WebSocketAPI {
       })
         .toPromise()
         .then(response => {
-          this.data[this.COMMAND_PARAM.BREAKPOINTS] = response.body;
+          this.data[this.COMMAND_PARAM.BREAKPOINTS][that.appComponent.functionId] = response.body;
         })
         .catch(console.log);
 
@@ -98,9 +101,9 @@ export class WebSocketAPI {
     return this.data[type];
   }
 
-  _executeAction(commandType: string, serviceId: string, pData: any) {
-    console.log('_executeAction: ' + commandType, serviceId, pData);
-    const payload = {};
+  _executeAction(commandType: string, pData: any) {
+    console.log('_executeAction: ' + commandType, pData);
+    const payload = {functionId: this.appComponent.functionId};
     switch (commandType) {
       case this.COMMAND_TYPE.DISCONNECT:
       case this.COMMAND_TYPE.RESUME:    // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
@@ -125,7 +128,7 @@ export class WebSocketAPI {
         break;
     }
     // send command to backend
-    this._sendCommand(serviceId, {type: commandType, content: btoa(JSON.stringify(payload))});
+    this._sendCommand(this.appComponent.serviceId, {type: commandType, content: btoa(JSON.stringify(payload))});
   }
 
   _sendCommand(serviceId: string, body: any) {

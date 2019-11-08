@@ -3,6 +3,7 @@ package com.wirecard.tools.debugger.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sun.jdi.event.BreakpointEvent;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
+import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,8 +18,8 @@ public class DataDebug {
     private boolean mute;
     private int clb;
 
-    private List<Map> brColl;
-    private List<BreakpointEvent> breakpointEvents;
+    private Map<String, List<Map>> brColl;
+    private Map<String, List<ChainingBreakpointRequest>> breakpointEvents;
 
     private Map sysVar;
     private Map custVar;
@@ -27,8 +28,8 @@ public class DataDebug {
     private JDIScript jdiScript;
 
     public DataDebug() {
-        this.brColl = new ArrayList<Map>();
-        this.breakpointEvents = new ArrayList<>();
+        this.brColl = new HashMap<>();
+        this.breakpointEvents = new HashMap<>();
         this.clear();
     }
 
@@ -41,15 +42,40 @@ public class DataDebug {
         this.sysVar = new HashMap();
         this.custVar = new HashMap();
         this.breakpointEvents.clear();
-        if(brColl != null) {
-            for(Map br : brColl) {
-                br.put("isDebug", false);
+        if (brColl != null) {
+            for (String key : brColl.keySet()) {
+                for (Map br : brColl.get(key)) {
+                    br.put("isDebug", false);
+                }
             }
         }
     }
 
-    public List<BreakpointEvent> getBreakpointEvents() {
-        return breakpointEvents;
+    public List<ChainingBreakpointRequest> getBreakpointEvents(String key) {
+        if(breakpointEvents.containsKey(key)) {
+            return breakpointEvents.get(key);
+        }
+        return null;
+    }
+
+    public void addBreakpointEvents(String key, ChainingBreakpointRequest chainingBreakpointRequest) {
+        List<ChainingBreakpointRequest> chainingBreakpointRequestList = this.breakpointEvents.get(key);
+        if(chainingBreakpointRequestList == null) {
+            chainingBreakpointRequestList = new ArrayList<>();
+        }
+        chainingBreakpointRequestList.add(chainingBreakpointRequest);
+        this.breakpointEvents.put(key, chainingBreakpointRequestList);
+    }
+
+    public List<Map> getBrColl(String key) {
+        if(brColl.containsKey(key)) {
+            return brColl.get(key);
+        }
+        return null;
+    }
+
+    public void putBrColl(String key, List<Map> brCollections) {
+        this.brColl.put(key, brCollections);
     }
 
     public JDIScript getJdiScript() {
@@ -99,14 +125,6 @@ public class DataDebug {
 
     public void setClb(int clb) {
         this.clb = clb;
-    }
-
-    public List getBrColl() {
-        return brColl;
-    }
-
-    public void setBrColl(List brColl) {
-        this.brColl = brColl;
     }
 
     public Map getSysVar() {

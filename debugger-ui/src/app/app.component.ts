@@ -52,7 +52,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   executeAction(command, pData = {}) {
-    this.webSocketAPI._executeAction(command, this.serviceId, pData);
+    this.webSocketAPI._executeAction(command, pData);
   }
 
   isFlag(command) {

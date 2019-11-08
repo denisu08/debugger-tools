@@ -36,7 +36,7 @@ public class WebSocketEventListener {
 
             DebugMessage debugMessage = new DebugMessage();
             debugMessage.setType(DebugMessage.CommandType.DISCONNECT);
-            debugMessage.setStageId(stageId);
+            // debugMessage.setStageId(stageId);
 
             messagingTemplate.convertAndSend(format("/channel/%s", serviceId), debugMessage);
         }
