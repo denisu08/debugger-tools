@@ -5,6 +5,10 @@ hr {
   border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+#main-panel {
+  margin: 50px 400px 0 400px;
+}
+
 div .checkbox, .radio {
   margin-top: 0;
   margin-bottom: 0;

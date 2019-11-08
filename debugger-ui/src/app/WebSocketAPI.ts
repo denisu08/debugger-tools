@@ -11,7 +11,6 @@ export class WebSocketAPI {
   appComponent: AppComponent;
   data: any;
   isConnected: boolean;
-  serviceId: string;
 
   tm: any;
 
@@ -19,7 +18,7 @@ export class WebSocketAPI {
   readonly COMMAND_PARAM = COMMAND_PARAM;
   readonly DEFAULT_CURRENT_LINE_BREAKPOINT = 0;
 
-  constructor(serviceId: string, appComponent: AppComponent) {
+  constructor(appComponent: AppComponent) {
     this.data = {
       [this.COMMAND_PARAM.IP]: '',
       [this.COMMAND_PARAM.PORT]: '',
@@ -32,7 +31,6 @@ export class WebSocketAPI {
     };
     this.appComponent = appComponent;
     this.isConnected = false;
-    this.serviceId = serviceId;
   }
 
   _getTopic(pTopic: string) {
@@ -49,7 +47,7 @@ export class WebSocketAPI {
 
     const that = this;
     that.stompClient.connect({}, (frame) => {
-      that.stompClient.subscribe(`/debug-channel/${that.serviceId}`, (sdkEvent) => {
+      that.stompClient.subscribe(`/debug-channel/${that.appComponent.serviceId}`, (sdkEvent) => {
         const msg = sdkEvent.data;
         if (msg === '__pong__') {
           that.pong();
@@ -62,7 +60,7 @@ export class WebSocketAPI {
       that.stompClient.reconnect_delay = 2000;
       that.isConnected = true;
 
-      that.appComponent.httpClient.get(`${that.basePATH}/api/service/${that.serviceId}`, {
+      that.appComponent.httpClient.get(`${that.basePATH}/api/service/${that.appComponent.serviceId}/${that.appComponent.functionId}`, {
         observe: 'response'
       })
         .toPromise()

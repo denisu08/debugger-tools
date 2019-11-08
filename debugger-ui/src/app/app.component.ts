@@ -11,8 +11,6 @@ import {WebSocketAPI} from './WebSocketAPI';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit, OnDestroy {
-  title = 'Debugger App';
-
   webSocketAPI: WebSocketAPI;
 
   // connection setting
@@ -24,15 +22,15 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly COMMAND_TYPE = COMMAND_TYPE;
   readonly COMMAND_PARAM = COMMAND_PARAM;
 
-  // roomId === serviceId
-  roomId = 'BOFrontEndUserManagerService';    // dummy
+  serviceId = 'HelloWorld';
+  functionId = 'startMe';
 
   constructor(private cdr: ChangeDetectorRef, public modalService: NgbModal, public httpClient: HttpClient) {
     vex.defaultOptions.className = 'vex-theme-os';
   }
 
   ngOnInit() {
-    this.webSocketAPI = new WebSocketAPI(this.roomId, this);
+    this.webSocketAPI = new WebSocketAPI(this);
     this.webSocketAPI._connect();
     this.ipValue = '127.0.0.1';
     this.portValue = '8888';
@@ -54,7 +52,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   executeAction(command, pData = {}) {
-    this.webSocketAPI._executeAction(command, this.roomId, pData);
+    this.webSocketAPI._executeAction(command, this.functionId, pData);
   }
 
   isFlag(command) {
