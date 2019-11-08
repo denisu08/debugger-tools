@@ -68,10 +68,9 @@ public class DebuggerController {
                     dataDebug = dataDebugFromClient;
 
                     String OPTIONS = ExampleConstant.CLASSPATH_FROM_JAR;
-                    // Path jarPathFile = Paths.get(CollectionUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-                    Path jarPathFile = Paths.get("helloworld-1.0-SNAPSHOT.jar");
+                    Path jarPathFile = Paths.get(ExampleConstant.HELLO_JAR);
                     Map<String, String> sourceMap = DebuggerUtils.decompileJar(jarPathFile);
-                    System.out.println("decompile:: " + sourceMap);
+                    // System.out.println("decompile:: " + sourceMap);
                     String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE_FROM_JAR);
                     JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
                     dataDebug.setJdiScript(j);
@@ -116,8 +115,10 @@ public class DebuggerController {
                                                 StackFrame stackFrame = be.thread().frame(0);
                                                 Map sysVar = new HashMap<>();
                                                 for (Field childField : childFields) {
-                                                    Value val = stackFrame.thisObject().getValue(childField);
-                                                    sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                    if (!childField.isStatic()) {
+                                                        Value val = stackFrame.thisObject().getValue(childField);
+                                                        sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                    }
                                                 }
 
                                                 // get field local variable

@@ -98,8 +98,8 @@ export class WebSocketAPI {
     return this.data[type];
   }
 
-  _executeAction(commandType: string, roomId: string, pData: any) {
-    console.log('_executeAction: ' + commandType, roomId, pData);
+  _executeAction(commandType: string, serviceId: string, pData: any) {
+    console.log('_executeAction: ' + commandType, serviceId, pData);
     const payload = {};
     switch (commandType) {
       case this.COMMAND_TYPE.DISCONNECT:
@@ -125,12 +125,12 @@ export class WebSocketAPI {
         break;
     }
     // send command to backend
-    this._sendCommand(roomId, {type: commandType, content: btoa(JSON.stringify(payload))});
+    this._sendCommand(serviceId, {type: commandType, content: btoa(JSON.stringify(payload))});
   }
 
-  _sendCommand(roomId: string, body: any) {
+  _sendCommand(serviceId: string, body: any) {
     this.stompClient.send(
-      this._getTopic(`${roomId}`),
+      this._getTopic(`${serviceId}`),
       {},
       JSON.stringify(body)
     );
@@ -164,7 +164,6 @@ export class WebSocketAPI {
 
   /**
    * Send message to sever via web socket
-   * @param {*} message
    */
   _send(message) {
     console.log('calling logout api via web socket');
