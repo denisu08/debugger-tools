@@ -1,85 +1,113 @@
 package com.wirecard.tools.debugger.common;
 
 import com.sun.jdi.*;
-import org.jd.core.v1.ClassFileToJavaSourceDecompiler;
-import org.jd.core.v1.api.loader.Loader;
-import org.jd.core.v1.api.loader.LoaderException;
-import org.jd.core.v1.api.printer.Printer;
+import com.wirecard.tools.debugger.loader.ZipLoader;
+import org.jd.core.v1.model.message.Message;
+import org.jd.core.v1.service.converter.classfiletojavasyntax.ClassFileToJavaSyntaxProcessor;
+import org.jd.core.v1.service.deserializer.classfile.DeserializeClassFileProcessor;
+import org.jd.core.v1.service.fragmenter.javasyntaxtojavafragment.JavaSyntaxToJavaFragmentProcessor;
+import org.jd.core.v1.service.layouter.LayoutFragmentProcessor;
+import org.jd.core.v1.service.tokenizer.javafragmenttotoken.JavaFragmentToTokenProcessor;
+import org.jd.core.v1.service.writer.WriteTokenProcessor;
+import printer.PlainTextPrinter;
 
 import javax.validation.constraints.NotNull;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class DebuggerUtils {
 
-    private static Loader loader = new Loader() {
-        @Override
-        public byte[] load(String internalName) throws LoaderException {
-            InputStream is = this.getClass().getResourceAsStream("/" + internalName + ".class");
+    private static DeserializeClassFileProcessor deserializer = new DeserializeClassFileProcessor();
+    private static ClassFileToJavaSyntaxProcessor converter = new ClassFileToJavaSyntaxProcessor();
+    private static JavaSyntaxToJavaFragmentProcessor fragmenter = new JavaSyntaxToJavaFragmentProcessor();
+    private static LayoutFragmentProcessor layouter = new LayoutFragmentProcessor();
+    private static JavaFragmentToTokenProcessor tokenizer = new JavaFragmentToTokenProcessor();
+    private static WriteTokenProcessor writer = new WriteTokenProcessor();
+    private static class CounterPrinter extends PlainTextPrinter {
+        public long classCounter = 0;
+        public long methodCounter = 0;
+        public long errorInMethodCounter = 0;
+        public long accessCounter = 0;
 
-            if (is == null) {
-                return null;
-            } else {
-                try (InputStream in = is; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                    byte[] buffer = new byte[1024];
-                    int read = in.read(buffer);
+        public void printText(String text) {
+            if (text != null) {
+                if ("// Byte code:".equals(text) || text.startsWith("/* monitor enter ") || text.startsWith("/* monitor exit ")) {
+                    errorInMethodCounter++;
+                }
+            }
+            super.printText(text);
+        }
 
-                    while (read > 0) {
-                        out.write(buffer, 0, read);
-                        read = in.read(buffer);
+        public void printDeclaration(int type, String internalTypeName, String name, String descriptor) {
+            if (type == TYPE) classCounter++;
+            if ((type == METHOD) || (type == CONSTRUCTOR)) methodCounter++;
+            super.printDeclaration(type, internalTypeName, name, descriptor);
+        }
+
+        public void printReference(int type, String internalTypeName, String name, String descriptor, String ownerInternalName) {
+            if ((name != null) && name.startsWith("access$")) {
+                accessCounter++;
+            }
+            super.printReference(type, internalTypeName, name, descriptor, ownerInternalName);
+        }
+    }
+
+    public static Map<String, String> decompileJar(Path filejarPath) throws Exception {
+        Map<String, String> sourceDecompilerMap = new HashMap<String, String>();
+        FileInputStream inputStream = new FileInputStream(filejarPath.toFile());
+
+        try (InputStream is = inputStream) {
+            ZipLoader loader = new ZipLoader(is);
+            CounterPrinter printer = new CounterPrinter();
+            HashMap<String, Integer> statistics = new HashMap<>();
+            HashMap<String, Object> configuration = new HashMap<>();
+
+            configuration.put("realignLineNumbers", Boolean.TRUE);
+
+            Message message = new Message();
+            message.setHeader("loader", loader);
+            message.setHeader("printer", printer);
+            message.setHeader("configuration", configuration);
+
+            for (String path : loader.getMap().keySet()) {
+                if (path.endsWith(".class") && (path.indexOf('$') == -1)) {
+                    String internalTypeName = path.substring(0, path.length() - 6); // 6 = ".class".length()
+
+                    message.setHeader("mainInternalTypeName", internalTypeName);
+                    printer.init();
+
+                    try {
+                        // Decompile class
+                        deserializer.process(message);
+                        converter.process(message);
+                        fragmenter.process(message);
+                        layouter.process(message);
+                        tokenizer.process(message);
+                        writer.process(message);
+                    } catch (AssertionError e) {
+                        String msg = (e.getMessage() == null) ? "<?>" : e.getMessage();
+                        Integer counter = statistics.get(msg);
+                        statistics.put(msg, (counter == null) ? 1 : counter + 1);
+                    } catch (Throwable t) {
+                        String msg = t.getMessage() == null ? t.getClass().toString() : t.getMessage();
+                        Integer counter = statistics.get(msg);
+                        statistics.put(msg, (counter == null) ? 1 : counter + 1);
                     }
 
-                    return out.toByteArray();
-                } catch (IOException e) {
-                    throw new LoaderException(e);
+                    // Recompile source
+                    String source = printer.toString();
+                    sourceDecompilerMap.put(path.toString(), source);
                 }
             }
         }
 
-        @Override
-        public boolean canLoad(String internalName) {
-            return this.getClass().getResource("/" + internalName + ".class") != null;
-        }
-    };
-
-    public static String decompileCode(String yourClassPath) throws Exception {
-        ClassFileToJavaSourceDecompiler decompiler = new ClassFileToJavaSourceDecompiler();
-        decompiler.decompile(loader, printer, yourClassPath);
-        return printer.toString();
+        return sourceDecompilerMap;
     }
-
-    private static Printer printer = new Printer() {
-        protected static final String TAB = "  ";
-        protected static final String NEWLINE = "\n";
-
-        protected int indentationCount = 0;
-        protected StringBuilder sb = new StringBuilder();
-
-        @Override public String toString() { return sb.toString(); }
-
-        @Override public void start(int maxLineNumber, int majorVersion, int minorVersion) {}
-        @Override public void end() {}
-
-        @Override public void printText(String text) { sb.append(text); }
-        @Override public void printNumericConstant(String constant) { sb.append(constant); }
-        @Override public void printStringConstant(String constant, String ownerInternalName) { sb.append(constant); }
-        @Override public void printKeyword(String keyword) { sb.append(keyword); }
-        @Override public void printDeclaration(int type, String internalTypeName, String name, String descriptor) { sb.append(name); }
-        @Override public void printReference(int type, String internalTypeName, String name, String descriptor, String ownerInternalName) { sb.append(name); }
-
-        @Override public void indent() { this.indentationCount++; }
-        @Override public void unindent() { this.indentationCount--; }
-
-        @Override public void startLine(int lineNumber) { for (int i=0; i<indentationCount; i++) sb.append(TAB); }
-        @Override public void endLine() { sb.append(NEWLINE); }
-        @Override public void extraLine(int count) { while (count-- > 0) sb.append(NEWLINE); }
-
-        @Override public void startMarker(int type) {}
-        @Override public void endMarker(int type) {}
-    };
 
     @NotNull
     public static Object getJavaValue(@NotNull Value jdiValue, @NotNull ThreadReference thread) {

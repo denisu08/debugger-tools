@@ -30,9 +30,7 @@
  * the design, construction, operation or maintenance of any nuclear
  * facility. Licensee represents and warrants that it will not use or
  * redistribute the Software for such purposes.
- */
-
-package com.wirecard.tools.debugger.jdiscript.events;
+ */package com.wirecard.tools.debugger.jdiscript.events;
 
 import com.sun.jdi.VMDisconnectedException;
 import com.sun.jdi.VirtualMachine;

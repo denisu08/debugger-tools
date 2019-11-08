@@ -17,7 +17,10 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.CollectionUtils;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -64,9 +67,12 @@ public class DebuggerController {
                     // need to set ip & port
                     dataDebug = dataDebugFromClient;
 
-                    String OPTIONS = ExampleConstant.CLASSPATH_CLASSES;
-                    System.out.println("decompile:: " + DebuggerUtils.decompileCode("C:/Wirecard/CBB_Project/debugger-tools/HelloWorld.class"));
-                    String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE);
+                    String OPTIONS = ExampleConstant.CLASSPATH_FROM_JAR;
+                    // Path jarPathFile = Paths.get(CollectionUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+                    Path jarPathFile = Paths.get("helloworld-1.0-SNAPSHOT.jar");
+                    Map<String, String> sourceMap = DebuggerUtils.decompileJar(jarPathFile);
+                    System.out.println("decompile:: " + sourceMap);
+                    String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE_FROM_JAR);
                     JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
                     dataDebug.setJdiScript(j);
                     jdiContainer.put(serviceId, dataDebug);
@@ -97,7 +103,7 @@ public class DebuggerController {
                     });*/
 
                     Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName("startMe").stream()
-                            .filter(m -> m.location().declaringType().name().startsWith(ExampleConstant.BASE_PACKAGE))
+                            .filter(m -> m.location().declaringType().name().startsWith(ExampleConstant.BASE_PACKAGE_FROM_JAR))
                             .forEach(m -> {
                                 try {
                                     List<Location> locationList = m.allLineLocations();
