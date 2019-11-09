@@ -1,7 +1,6 @@
 package com.wirecard.tools.debugger.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.sun.jdi.event.BreakpointEvent;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 
@@ -19,6 +18,7 @@ public class DataDebug {
     private int clb;
 
     private Map<String, List<Map>> brColl;
+    private List<Map> currentBrColl; // UI always ignore this properties, only for server sync
     private Map<String, List<ChainingBreakpointRequest>> breakpointEvents;
 
     private Map sysVar;
@@ -26,6 +26,14 @@ public class DataDebug {
 
     @JsonIgnore
     private JDIScript jdiScript;
+
+    public List<Map> getCurrentBrColl() {
+        return currentBrColl;
+    }
+
+    public void setCurrentBrColl(List<Map> currentBrColl) {
+        this.currentBrColl = currentBrColl;
+    }
 
     public DataDebug() {
         this.brColl = new HashMap<>();
@@ -49,6 +57,14 @@ public class DataDebug {
                 }
             }
         }
+    }
+
+    public Map<String, List<Map>> getBrColl() {
+        return brColl;
+    }
+
+    public void setBrColl(Map<String, List<Map>> brColl) {
+        this.brColl = brColl;
     }
 
     public List<ChainingBreakpointRequest> getBreakpointEvents(String key) {

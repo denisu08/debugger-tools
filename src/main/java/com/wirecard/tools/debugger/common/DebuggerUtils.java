@@ -23,13 +23,6 @@ import java.util.stream.Collectors;
 
 public class DebuggerUtils {
 
-    private static DeserializeClassFileProcessor deserializer = new DeserializeClassFileProcessor();
-    private static ClassFileToJavaSyntaxProcessor converter = new ClassFileToJavaSyntaxProcessor();
-    private static JavaSyntaxToJavaFragmentProcessor fragmenter = new JavaSyntaxToJavaFragmentProcessor();
-    private static LayoutFragmentProcessor layouter = new LayoutFragmentProcessor();
-    private static JavaFragmentToTokenProcessor tokenizer = new JavaFragmentToTokenProcessor();
-    private static WriteTokenProcessor writer = new WriteTokenProcessor();
-
     private static class CounterPrinter extends PlainTextPrinter {
         public long classCounter = 0;
         public long methodCounter = 0;
@@ -59,19 +52,18 @@ public class DebuggerUtils {
         }
     }
 
-    private static Map<String, Map<String, String>> sourceMap = new HashMap<>();
-
-    public static void removeSourceMap(String serviceId) throws Exception {
-        DebuggerUtils.sourceMap.remove(serviceId);
+    public static void removeSourceMap(String serviceId) {
+        GlobalVariables.sourceMap.remove(serviceId);
     }
 
     public static Map<String, String> getSourceMap(String serviceId) throws Exception {
-        Map<String, String> sourceDecompilerMap = DebuggerUtils.sourceMap.get(serviceId);
+        Map<String, String> sourceDecompilerMap = GlobalVariables.sourceMap.get(serviceId);
 
         if (sourceDecompilerMap == null) {
             sourceDecompilerMap = new HashMap<>();
             // TODO: adapt to config later
             Path filejarPath = Paths.get(String.format("./testBundle/%s-1.0-SNAPSHOT.tar", serviceId.toLowerCase()));
+            System.out.println("start - compile source: " + filejarPath.toString());
             FileInputStream inputStream = new FileInputStream(filejarPath.toFile());
 
             try (InputStream is = inputStream) {
@@ -96,12 +88,12 @@ public class DebuggerUtils {
 
                         try {
                             // Decompile class
-                            deserializer.process(message);
-                            converter.process(message);
-                            fragmenter.process(message);
-                            layouter.process(message);
-                            tokenizer.process(message);
-                            writer.process(message);
+                            GlobalVariables.deserializer.process(message);
+                            GlobalVariables.converter.process(message);
+                            GlobalVariables.fragmenter.process(message);
+                            GlobalVariables.layouter.process(message);
+                            GlobalVariables.tokenizer.process(message);
+                            GlobalVariables.writer.process(message);
                         } catch (AssertionError e) {
                             String msg = (e.getMessage() == null) ? "<?>" : e.getMessage();
                             Integer counter = statistics.get(msg);
@@ -114,11 +106,12 @@ public class DebuggerUtils {
 
                         // Recompile source
                         String source = printer.toString();
-                        sourceDecompilerMap.put(path.toString(), source);
+                        sourceDecompilerMap.put(path, source);
                     }
                 }
             }
-            DebuggerUtils.sourceMap.put(serviceId, sourceDecompilerMap);
+            System.out.println("done - compile source: " + filejarPath.toString());
+            GlobalVariables.sourceMap.put(serviceId, sourceDecompilerMap);
         }
 
         return sourceDecompilerMap;

@@ -118,13 +118,4 @@ export class AppComponent implements OnInit, OnDestroy {
       this.executeAction(this.COMMAND_TYPE.REMOVE_VARIABLE, pData);
     }
   }
-
-  // sendMessage() {
-  //   this.webSocketAPI._send(this.name);
-  // }
-
-  // handleMessage(message) {
-  //   this.greeting = message;
-  //   console.log(`message: ${message}`);
-  // }
 }

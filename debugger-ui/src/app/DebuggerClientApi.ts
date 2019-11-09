@@ -16,7 +16,8 @@ export class DebuggerClientApi {
 
   readonly COMMAND_TYPE = COMMAND_TYPE;
   readonly COMMAND_PARAM = COMMAND_PARAM;
-  readonly DEFAULT_CURRENT_LINE_BREAKPOINT = '-#0';
+  readonly DEFAULT_CURRENT_LINE_BREAKPOINT = '0';
+  readonly DEFAULT_POINTER_BREAKPOINT = 'xx';
 
   constructor(appComponent: AppComponent) {
     this.data = {
@@ -25,6 +26,7 @@ export class DebuggerClientApi {
       [this.COMMAND_PARAM.IS_CONNECT]: false,
       [this.COMMAND_PARAM.IS_MUTE]: false,
       // add segment to
+      [this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT]: this.DEFAULT_POINTER_BREAKPOINT,
       [this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT]: this.DEFAULT_CURRENT_LINE_BREAKPOINT,
       [this.COMMAND_PARAM.BREAKPOINTS]: {},
       [this.COMMAND_PARAM.GET_SYSTEM_VARIABLES]: {},
@@ -109,7 +111,7 @@ export class DebuggerClientApi {
 
   _executeAction(commandType: string, pData: any) {
     console.log('_executeAction: ' + commandType, pData);
-    const payload = {functionId: this.appComponent.functionId};
+    const payload = {};
     switch (commandType) {
       case this.COMMAND_TYPE.DISCONNECT:
       case this.COMMAND_TYPE.RESUME:    // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
@@ -122,7 +124,7 @@ export class DebuggerClientApi {
         payload[COMMAND_PARAM.BREAKPOINTS] = this.data[COMMAND_PARAM.BREAKPOINTS];
         break;
       case this.COMMAND_TYPE.SET_BREAKPOINT:
-        payload[COMMAND_PARAM.BREAKPOINTS] = this.changeBreakpoint(pData.line, pData.flag);
+        payload[COMMAND_PARAM.CURRENT_BREAKPOINTS] = this.changeBreakpoint(pData.line, pData.flag);
         break;
       case this.COMMAND_TYPE.ADD_VARIABLE:
         this.addVariable(pData);
@@ -134,7 +136,8 @@ export class DebuggerClientApi {
         break;
     }
     // send command to backend
-    this._sendCommand(this.appComponent.serviceId, {type: commandType, content: btoa(JSON.stringify(payload))});
+    this._sendCommand(this.appComponent.serviceId,
+      {functionId: this.appComponent.functionId, type: commandType, content: btoa(JSON.stringify(payload))});
   }
 
   _sendCommand(serviceId: string, body: any) {
@@ -146,7 +149,7 @@ export class DebuggerClientApi {
   }
 
   changeBreakpoint(pLine, pFlag) {
-    const newBreakpoints = [].concat(this.data[this.COMMAND_PARAM.BREAKPOINTS]);
+    const newBreakpoints = [].concat(this.data[this.COMMAND_PARAM.BREAKPOINTS][this.appComponent.functionId]);
     newBreakpoints.forEach(e => {
       if (e.line === pLine) {
         e.isDebug = pFlag;
@@ -171,20 +174,13 @@ export class DebuggerClientApi {
     }, 5000);
   }
 
-  /**
-   * Send message to sever via web socket
-   */
-  _send(message) {
-    console.log('calling logout api via web socket');
-    this.stompClient.send('/app/hello', {}, JSON.stringify(message));
-  }
-
-  sendMessage(message) {
-    this.stompClient.send('/app/send/message', {}, message);
-  }
-
   onMessageReceived(message) {
     console.log('Message Receieved from Server :: ' + message);
     this.data = JSON.parse(message.body);
+    if (this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT in this.data && this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT] !== 'xx') {
+      const params = this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT].split('#');
+      this.appComponent.functionId = params[0];
+      this.data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = params[1];
+    }
   }
 }
