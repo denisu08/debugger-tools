@@ -14,7 +14,6 @@ export const COMMAND_PARAM = Object.freeze({
   PORT: 'port',
   IS_CONNECT: 'connect',
   IS_MUTE: 'mute',
-  FUNCTION: 'functionMap',
   CURRENT_LINE_BREAKPOINT: 'clb',
   BREAKPOINTS: 'brColl',
   GET_SYSTEM_VARIABLES: 'sysVar',

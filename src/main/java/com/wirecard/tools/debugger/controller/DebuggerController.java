@@ -19,8 +19,6 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -68,9 +66,9 @@ public class DebuggerController {
                     dataDebug = dataDebugFromClient;
 
                     String OPTIONS = ExampleConstant.CLASSPATH_FROM_JAR;
-                    Path jarPathFile = Paths.get(ExampleConstant.HELLO_JAR);
-                    Map<String, String> sourceMap = DebuggerUtils.decompileJar(jarPathFile);
-                    // System.out.println("decompile:: " + sourceMap);
+//                    Path jarPathFile = Paths.get(ExampleConstant.HELLO_JAR);
+                    Map<String, String> sourceMap = DebuggerUtils.getSourceMap(serviceId);
+                    System.out.println("decompile:: " + sourceMap);
                     String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE_FROM_JAR);
                     JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
                     dataDebug.setJdiScript(j);

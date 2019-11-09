@@ -15,6 +15,7 @@ import javax.validation.constraints.NotNull;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class DebuggerUtils {
     private static LayoutFragmentProcessor layouter = new LayoutFragmentProcessor();
     private static JavaFragmentToTokenProcessor tokenizer = new JavaFragmentToTokenProcessor();
     private static WriteTokenProcessor writer = new WriteTokenProcessor();
+
     private static class CounterPrinter extends PlainTextPrinter {
         public long classCounter = 0;
         public long methodCounter = 0;
@@ -57,53 +59,66 @@ public class DebuggerUtils {
         }
     }
 
-    public static Map<String, String> decompileJar(Path filejarPath) throws Exception {
-        Map<String, String> sourceDecompilerMap = new HashMap<String, String>();
-        FileInputStream inputStream = new FileInputStream(filejarPath.toFile());
+    private static Map<String, Map<String, String>> sourceMap = new HashMap<>();
 
-        try (InputStream is = inputStream) {
-            ZipLoader loader = new ZipLoader(is);
-            CounterPrinter printer = new CounterPrinter();
-            HashMap<String, Integer> statistics = new HashMap<>();
-            HashMap<String, Object> configuration = new HashMap<>();
+    public static void removeSourceMap(String serviceId) throws Exception {
+        DebuggerUtils.sourceMap.remove(serviceId);
+    }
 
-            configuration.put("realignLineNumbers", Boolean.TRUE);
+    public static Map<String, String> getSourceMap(String serviceId) throws Exception {
+        Map<String, String> sourceDecompilerMap = DebuggerUtils.sourceMap.get(serviceId);
 
-            Message message = new Message();
-            message.setHeader("loader", loader);
-            message.setHeader("printer", printer);
-            message.setHeader("configuration", configuration);
+        if (sourceDecompilerMap == null) {
+            sourceDecompilerMap = new HashMap<>();
+            // TODO: adapt to config later
+            Path filejarPath = Paths.get(String.format("./testBundle/%s-1.0-SNAPSHOT.tar", serviceId.toLowerCase()));
+            FileInputStream inputStream = new FileInputStream(filejarPath.toFile());
 
-            for (String path : loader.getMap().keySet()) {
-                if (path.endsWith(".class") && (path.indexOf('$') == -1)) {
-                    String internalTypeName = path.substring(0, path.length() - 6); // 6 = ".class".length()
+            try (InputStream is = inputStream) {
+                ZipLoader loader = new ZipLoader(is);
+                CounterPrinter printer = new CounterPrinter();
+                HashMap<String, Integer> statistics = new HashMap<>();
+                HashMap<String, Object> configuration = new HashMap<>();
 
-                    message.setHeader("mainInternalTypeName", internalTypeName);
-                    printer.init();
+                configuration.put("realignLineNumbers", Boolean.TRUE);
 
-                    try {
-                        // Decompile class
-                        deserializer.process(message);
-                        converter.process(message);
-                        fragmenter.process(message);
-                        layouter.process(message);
-                        tokenizer.process(message);
-                        writer.process(message);
-                    } catch (AssertionError e) {
-                        String msg = (e.getMessage() == null) ? "<?>" : e.getMessage();
-                        Integer counter = statistics.get(msg);
-                        statistics.put(msg, (counter == null) ? 1 : counter + 1);
-                    } catch (Throwable t) {
-                        String msg = t.getMessage() == null ? t.getClass().toString() : t.getMessage();
-                        Integer counter = statistics.get(msg);
-                        statistics.put(msg, (counter == null) ? 1 : counter + 1);
+                Message message = new Message();
+                message.setHeader("loader", loader);
+                message.setHeader("printer", printer);
+                message.setHeader("configuration", configuration);
+
+                for (String path : loader.getMap().keySet()) {
+                    if (path.endsWith(".class") && (path.indexOf('$') == -1)) {
+                        String internalTypeName = path.substring(0, path.length() - 6); // 6 = ".class".length()
+
+                        message.setHeader("mainInternalTypeName", internalTypeName);
+                        printer.init();
+
+                        try {
+                            // Decompile class
+                            deserializer.process(message);
+                            converter.process(message);
+                            fragmenter.process(message);
+                            layouter.process(message);
+                            tokenizer.process(message);
+                            writer.process(message);
+                        } catch (AssertionError e) {
+                            String msg = (e.getMessage() == null) ? "<?>" : e.getMessage();
+                            Integer counter = statistics.get(msg);
+                            statistics.put(msg, (counter == null) ? 1 : counter + 1);
+                        } catch (Throwable t) {
+                            String msg = t.getMessage() == null ? t.getClass().toString() : t.getMessage();
+                            Integer counter = statistics.get(msg);
+                            statistics.put(msg, (counter == null) ? 1 : counter + 1);
+                        }
+
+                        // Recompile source
+                        String source = printer.toString();
+                        sourceDecompilerMap.put(path.toString(), source);
                     }
-
-                    // Recompile source
-                    String source = printer.toString();
-                    sourceDecompilerMap.put(path.toString(), source);
                 }
             }
+            DebuggerUtils.sourceMap.put(serviceId, sourceDecompilerMap);
         }
 
         return sourceDecompilerMap;

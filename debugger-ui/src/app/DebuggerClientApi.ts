@@ -3,7 +3,7 @@ import * as SockJS from 'sockjs-client';
 import {AppComponent} from './app.component';
 import {COMMAND_TYPE, COMMAND_PARAM} from 'src/util/app-constant';
 
-export class WebSocketAPI {
+export class DebuggerClientApi {
   basePATH = 'http://localhost:8080';
   webSocketEndPoint = `${this.basePATH}/ws`;
   baseTopic = '/app/debugger/#{param}';
@@ -26,11 +26,9 @@ export class WebSocketAPI {
       [this.COMMAND_PARAM.IS_MUTE]: false,
       // add segment to
       [this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT]: this.DEFAULT_CURRENT_LINE_BREAKPOINT,
-      [this.COMMAND_PARAM.FUNCTION]: {},
-      // [this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT]: this.DEFAULT_CURRENT_LINE_BREAKPOINT,
-      // [this.COMMAND_PARAM.BREAKPOINTS]: [],
-      // [this.COMMAND_PARAM.GET_SYSTEM_VARIABLES]: {},
-      // [this.COMMAND_PARAM.GET_CUSTOM_VARIABLES]: {}
+      [this.COMMAND_PARAM.BREAKPOINTS]: {},
+      [this.COMMAND_PARAM.GET_SYSTEM_VARIABLES]: {},
+      [this.COMMAND_PARAM.GET_CUSTOM_VARIABLES]: {}
     };
     this.appComponent = appComponent;
     this.isConnected = false;
@@ -49,7 +47,7 @@ export class WebSocketAPI {
     };*/
 
     const that = this;
-    that.stompClient.connect({}, (frame) => {
+    that.stompClient.connect({serviceId: this.appComponent.serviceId}, (frame) => {
       that.stompClient.subscribe(`/debug-channel/${that.appComponent.serviceId}`, (sdkEvent) => {
         const msg = sdkEvent.data;
         if (msg === '__pong__') {
@@ -63,6 +61,15 @@ export class WebSocketAPI {
       that.stompClient.reconnect_delay = 2000;
       that.isConnected = true;
 
+      this.patchBreakpointFromService(that);
+
+      that.appComponent._forceDraw();
+    }, this.errorCallBack.bind(this));
+  }
+
+  patchBreakpointFromService(that: DebuggerClientApi) {
+    const isExist = that.appComponent.functionId in that.data[that.COMMAND_PARAM.BREAKPOINTS];
+    if (!isExist) {
       that.appComponent.httpClient.get(`${that.basePATH}/api/service/${that.appComponent.serviceId}/${that.appComponent.functionId}`, {
         observe: 'response'
       })
@@ -71,9 +78,8 @@ export class WebSocketAPI {
           this.data[this.COMMAND_PARAM.BREAKPOINTS][that.appComponent.functionId] = response.body;
         })
         .catch(console.log);
+    }
 
-      that.appComponent._forceDraw();
-    }, this.errorCallBack.bind(this));
   }
 
   ping() {

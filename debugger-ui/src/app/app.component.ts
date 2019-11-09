@@ -3,7 +3,7 @@ import {NgbModal, NgbModalOptions} from '@ng-bootstrap/ng-bootstrap';
 import {AddVariableModalComponent} from 'src/add-variable-modal/add-variable-modal.component';
 import {COMMAND_TYPE, COMMAND_PARAM} from 'src/util/app-constant';
 import {HttpClient} from '@angular/common/http';
-import {WebSocketAPI} from './WebSocketAPI';
+import {DebuggerClientApi} from './DebuggerClientApi';
 
 @Component({
   selector: 'app-root',
@@ -11,7 +11,7 @@ import {WebSocketAPI} from './WebSocketAPI';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit, OnDestroy {
-  webSocketAPI: WebSocketAPI;
+  webSocketAPI: DebuggerClientApi;
 
   // connection setting
   ipValue: string;
@@ -30,7 +30,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.webSocketAPI = new WebSocketAPI(this);
+    this.webSocketAPI = new DebuggerClientApi(this);
     this.webSocketAPI._connect();
     this.ipValue = '127.0.0.1';
     this.portValue = '8888';
@@ -68,7 +68,12 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   getBreakpoints() {
-    return this.webSocketAPI.queryDataByKey(this.COMMAND_PARAM.BREAKPOINTS);
+    return this.webSocketAPI.queryDataByKey(this.COMMAND_PARAM.BREAKPOINTS)[this.functionId];
+  }
+
+  onChangeFunction(event) {
+    this.functionId = event.currentTarget.value;
+    this.webSocketAPI.patchBreakpointFromService(this.webSocketAPI);
   }
 
   getCurrentLineBreakpoint() {
