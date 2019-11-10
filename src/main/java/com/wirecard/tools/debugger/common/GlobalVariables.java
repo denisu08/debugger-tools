@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class GlobalVariables {
     public static Map<String, DataDebug> jdiContainer = new HashMap();
-    public static Map<String, Map<String, String>> sourceMap = new HashMap<>();
+    public static Map<String, Map<String, Map<Integer, String>>> sourceMap = new HashMap<>();
 
     public static DeserializeClassFileProcessor deserializer = new DeserializeClassFileProcessor();
     public static ClassFileToJavaSyntaxProcessor converter = new ClassFileToJavaSyntaxProcessor();

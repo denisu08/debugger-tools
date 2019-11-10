@@ -3,6 +3,7 @@ package com.wirecard.tools.debugger.controller;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jdi.*;
+import com.sun.tools.jdi.LocationImpl;
 import com.wirecard.tools.debugger.common.DebuggerUtils;
 import com.wirecard.tools.debugger.common.GlobalVariables;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
@@ -20,11 +21,12 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.BufferedReader;
+import java.io.LineNumberReader;
+import java.io.StringReader;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
@@ -58,6 +60,7 @@ public class DebuggerController {
 
         // if null, so client is pointed as latest data
         if (dataDebug == null) {
+
             dataDebug = dataDebugFromClient;
             GlobalVariables.jdiContainer.put(serviceId, dataDebug);
         }
@@ -66,8 +69,6 @@ public class DebuggerController {
             case CONNECT:
                 // need to set ip & port
                 String OPTIONS = ExampleConstant.CLASSPATH_FROM_JAR;
-                Map<String, String> sourceMap = DebuggerUtils.getSourceMap(serviceId);
-                System.out.println("decompile:: " + sourceMap);
                 String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE_FROM_JAR);
                 JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
                 GlobalVariables.jdiContainer.get(serviceId).setJdiScript(j);
@@ -80,79 +81,7 @@ public class DebuggerController {
                     }
                 });
 
-                Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName("startMe").stream()
-                        .filter(m -> m.location().declaringType().name().startsWith(ExampleConstant.BASE_PACKAGE_FROM_JAR))
-                        .forEach(m -> {
-                            if (GlobalVariables.jdiContainer.containsKey(serviceId)) {
-                                try {
-                                    List<Location> locationList = m.allLineLocations();
-
-                                    // filter based on source code & stageList
-
-                                    for (Location loc : locationList) {
-                                        ChainingBreakpointRequest chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
-                                            System.out.println("be: " + be);
-                                            try {
-                                                // get field current class
-                                                List<Field> childFields = m.location().declaringType().allFields();
-                                                StackFrame stackFrame = be.thread().frame(0);
-                                                Map sysVar = new HashMap<>();
-                                                for (Field childField : childFields) {
-                                                    if (!childField.isStatic()) {
-                                                        Value val = stackFrame.thisObject().getValue(childField);
-                                                        sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
-                                                    }
-                                                }
-
-                                                // get field local variable
-                                                List<LocalVariable> localVariables = loc.method().variables();
-                                                Map<String, LocalVariable> localVariableMap = new HashMap<>(localVariables.size());
-                                                for (LocalVariable variable : localVariables) {
-                                                    if (variable.isVisible(stackFrame)) {
-                                                        Value val = stackFrame.getValue(variable);
-                                                        sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
-                                                    }
-                                                }
-
-                                                GlobalVariables.jdiContainer.get(serviceId).setSysVar(sysVar);
-                                                GlobalVariables.jdiContainer.get(serviceId).setClb(1);
-                                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
-                                                j.vm().suspend();
-                                            } catch (Exception ex) {
-                                                ex.printStackTrace();
-                                            }
-                                        }).setEnabled(true);
-
-                                        GlobalVariables.jdiContainer.get(serviceId).addBreakpointEvents(debugMessage.getFunctionId(), chainingBreakpointRequest);
-                                    }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        });
-
-                j.vm().allClasses().forEach(c -> setConstructBrks.accept(c));
-                j.onClassPrep(cp -> setConstructBrks.accept(cp.referenceType()));
-
-//                    j.onMethodInvocation("com.wirecard.tools.debugger.jdiscript.example.HelloWorld", "start", e -> {
-//                        j.onStepInto(e.thread(), j.once(se -> {
-//                            // unchecked(() -> e.object().setValue(e.field(), j.vm().mirrorOf("JDIScript!")));
-//                            try {
-//                                List<Field> childFields = e.location().declaringType().allFields();
-//                                StackFrame stackFrame = e.thread().frame(0);
-//                                Map sysVar = new HashMap<>();
-//                                for (Field childField : childFields) {
-//                                    Value val = stackFrame.thisObject().getValue(childField);
-//                                    sysVar.put(childField.name(), Utils.getJavaValue(val));
-//                                }
-//                                finalDataDebug.setSysVar(sysVar);
-//                                finalDataDebug.setClb(1);
-//                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(finalDataDebug));
-//                            } catch (Exception ex) {
-//                                ex.printStackTrace();
-//                            }
-//                        }));
-//                    });
+                this.collectBreakpointEvents(serviceId, debugMessage.getFunctionId());
 
                 GlobalVariables.jdiContainer.get(serviceId).setConnect(true);
                 messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
@@ -188,5 +117,104 @@ public class DebuggerController {
         if (runCommand) {
             messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
         }
+    }
+
+    private void collectBreakpointEvents(final String serviceId, final String functionId) {
+        DataDebug dataDebug = GlobalVariables.jdiContainer.get(serviceId);
+        JDIScript j = dataDebug.getJdiScript();
+
+        Set<String> keySet = dataDebug.getBrColl().keySet();
+        for (String functionName : keySet) {
+            Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName(functionName).stream()
+                    .filter(m -> m.location().declaringType().name().startsWith(ExampleConstant.BASE_PACKAGE_FROM_JAR))
+                    .forEach(m -> {
+                        if (GlobalVariables.jdiContainer.containsKey(serviceId)) {
+                            try {
+                                List<Location> locationList = m.allLineLocations();
+
+                                // filter based on source code & stageList
+                                Map<String, Map<Integer, String>> sourceMap = DebuggerUtils.getSourceMap(serviceId);
+                                // System.out.println("decompile:: " + sourceMap);
+                                int findPercentage = 0;     // 1. find logger.debug, 2. String.format, 3. serviceId, functionId
+                                String sourceLineCode = "";
+                                for (Location loc : locationList) {
+                                    // check, if source code is exist
+                                    if(!sourceMap.containsKey(loc.sourcePath())) {
+                                        findPercentage = 0; // reset
+                                        continue;
+                                    } else {
+                                        sourceLineCode = sourceMap.get(loc.sourcePath()).get(loc.lineNumber());
+                                        if(sourceLineCode == null || "".equals(sourceLineCode)) {
+                                            findPercentage = 0; // reset
+                                            continue;
+                                        }
+                                    }
+
+                                    // analyze requirement filter
+                                    if(sourceLineCode.indexOf("logger.debug(") >= 0) findPercentage++;
+                                    else if(findPercentage == 1 && this.filterKey(serviceId, functionId, sourceLineCode) != null) findPercentage++;
+                                    else findPercentage = 0;
+
+                                    // check if, 2 requirement filter is fulfilled. so create breakpoint
+                                    if(findPercentage < 2) continue;
+                                    findPercentage = 0;
+
+                                    // create breakpoints
+                                    ChainingBreakpointRequest chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
+                                        System.out.println("be: " + be);
+                                        try {
+                                            // get field current class
+                                            List<Field> childFields = m.location().declaringType().allFields();
+                                            StackFrame stackFrame = be.thread().frame(0);
+                                            Map sysVar = new HashMap<>();
+                                            for (Field childField : childFields) {
+                                                if (!childField.isStatic()) {
+                                                    Value val = stackFrame.thisObject().getValue(childField);
+                                                    sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                }
+                                            }
+
+                                            // get field local variable
+                                            List<LocalVariable> localVariables = loc.method().variables();
+                                            Map<String, LocalVariable> localVariableMap = new HashMap<>(localVariables.size());
+                                            for (LocalVariable variable : localVariables) {
+                                                if (variable.isVisible(stackFrame)) {
+                                                    Value val = stackFrame.getValue(variable);
+                                                    sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                }
+                                            }
+
+                                            GlobalVariables.jdiContainer.get(serviceId).setSysVar(sysVar);
+                                            GlobalVariables.jdiContainer.get(serviceId).setClb(1);
+                                            messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
+                                            j.vm().suspend();
+                                        } catch (Exception ex) {
+                                            ex.printStackTrace();
+                                        }
+                                    }).setEnabled(true);
+
+                                    GlobalVariables.jdiContainer.get(serviceId).addBreakpointEvents(this.filterKey(serviceId, functionId, sourceLineCode), chainingBreakpointRequest);
+                                }
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+                    });
+
+            j.vm().allClasses().forEach(c -> setConstructBrks.accept(c));
+            j.onClassPrep(cp -> setConstructBrks.accept(cp.referenceType()));
+        }
+    }
+
+    private String filterKey(String serviceId, String functionId, String sourceLineCode) {
+        List<Map> brCollections = GlobalVariables.jdiContainer.get(serviceId).getBrColl(functionId);
+        String keyFilter = null;
+        for(Map map : brCollections) {
+            if(sourceLineCode.indexOf(String.format("\"%s\", \"%s\", Long.valueOf(System.currentTimeMillis()) }));", functionId, map.get("name"))) >= 0) {
+                keyFilter = String.format("%s#%s", functionId, map.get("name"));
+                break;
+            }
+        }
+        return keyFilter;
     }
 }

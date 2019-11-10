@@ -12,8 +12,7 @@ import org.jd.core.v1.service.writer.WriteTokenProcessor;
 import printer.PlainTextPrinter;
 
 import javax.validation.constraints.NotNull;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -56,8 +55,8 @@ public class DebuggerUtils {
         GlobalVariables.sourceMap.remove(serviceId);
     }
 
-    public static Map<String, String> getSourceMap(String serviceId) throws Exception {
-        Map<String, String> sourceDecompilerMap = GlobalVariables.sourceMap.get(serviceId);
+    public static Map<String, Map<Integer, String>> getSourceMap(String serviceId) throws Exception {
+        Map<String, Map<Integer, String>> sourceDecompilerMap = GlobalVariables.sourceMap.get(serviceId);
 
         if (sourceDecompilerMap == null) {
             sourceDecompilerMap = new HashMap<>();
@@ -106,7 +105,15 @@ public class DebuggerUtils {
 
                         // Recompile source
                         String source = printer.toString();
-                        sourceDecompilerMap.put(path, source);
+                        String newKeyPath = path.replaceAll("/", "\\\\").substring(0, path.lastIndexOf("class")) + "java";
+                        BufferedReader br = new BufferedReader(new StringReader(source));
+                        String sourceLine = "";
+                        int lineNumber = 1;
+                        Map<Integer, String> sourceLineCodeMap = new HashMap<>();
+                        while((sourceLine = br.readLine()) != null) {
+                            sourceLineCodeMap.put(lineNumber++, sourceLine);
+                        }
+                        sourceDecompilerMap.put(newKeyPath, sourceLineCodeMap);
                     }
                 }
             }
