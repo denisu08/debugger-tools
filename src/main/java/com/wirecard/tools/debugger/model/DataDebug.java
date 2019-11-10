@@ -16,24 +16,17 @@ public class DataDebug {
     private boolean connect;
     private boolean mute;
     private int clb;
+    private String cpb;
 
     private Map<String, List<Map>> brColl;
     private List<Map> currentBrColl; // UI always ignore this properties, only for server sync
-    private Map<String, List<ChainingBreakpointRequest>> breakpointEvents;
+    private Map<String, Map<String, ChainingBreakpointRequest>> breakpointEvents;
 
     private Map sysVar;
     private Map custVar;
 
     @JsonIgnore
     private JDIScript jdiScript;
-
-    public List<Map> getCurrentBrColl() {
-        return currentBrColl;
-    }
-
-    public void setCurrentBrColl(List<Map> currentBrColl) {
-        this.currentBrColl = currentBrColl;
-    }
 
     public DataDebug() {
         this.brColl = new HashMap<>();
@@ -59,6 +52,22 @@ public class DataDebug {
         }
     }
 
+    public String getCpb() {
+        return cpb;
+    }
+
+    public void setCpb(String cpb) {
+        this.cpb = cpb;
+    }
+
+    public List<Map> getCurrentBrColl() {
+        return currentBrColl;
+    }
+
+    public void setCurrentBrColl(List<Map> currentBrColl) {
+        this.currentBrColl = currentBrColl;
+    }
+
     public Map<String, List<Map>> getBrColl() {
         return brColl;
     }
@@ -67,24 +76,21 @@ public class DataDebug {
         this.brColl = brColl;
     }
 
-    public List<ChainingBreakpointRequest> getBreakpointEvents(String key) {
-        if(breakpointEvents.containsKey(key)) {
-            return breakpointEvents.get(key);
-        }
-        return null;
+    public Map<String, ChainingBreakpointRequest> getBreakpointEvents(String functionId) {
+        return breakpointEvents.getOrDefault(functionId, new HashMap<>());
     }
 
-    public void addBreakpointEvents(String key, ChainingBreakpointRequest chainingBreakpointRequest) {
-        List<ChainingBreakpointRequest> chainingBreakpointRequestList = this.breakpointEvents.get(key);
-        if(chainingBreakpointRequestList == null) {
-            chainingBreakpointRequestList = new ArrayList<>();
+    public void addBreakpointEvents(String functionId, String breakpointKey, ChainingBreakpointRequest chainingBreakpointRequest) {
+        Map<String, ChainingBreakpointRequest> chainingBreakpointRequestList = this.breakpointEvents.get(functionId);
+        if (chainingBreakpointRequestList == null) {
+            chainingBreakpointRequestList = new HashMap();
         }
-        chainingBreakpointRequestList.add(chainingBreakpointRequest);
-        this.breakpointEvents.put(key, chainingBreakpointRequestList);
+        chainingBreakpointRequestList.put(breakpointKey, chainingBreakpointRequest);
+        this.breakpointEvents.put(functionId, chainingBreakpointRequestList);
     }
 
     public List<Map> getBrColl(String key) {
-        if(brColl.containsKey(key)) {
+        if (brColl.containsKey(key)) {
             return brColl.get(key);
         }
         return null;

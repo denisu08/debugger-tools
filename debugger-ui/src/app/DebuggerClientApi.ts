@@ -177,7 +177,8 @@ export class DebuggerClientApi {
   onMessageReceived(message) {
     console.log('Message Receieved from Server :: ' + message);
     this.data = JSON.parse(message.body);
-    if (this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT in this.data && this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT] !== 'xx') {
+    if (this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT in this.data
+      && this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT] !== this.DEFAULT_POINTER_BREAKPOINT) {
       const params = this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT].split('#');
       this.appComponent.functionId = params[0];
       this.data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = params[1];

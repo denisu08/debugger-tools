@@ -10,6 +10,7 @@ import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 import com.wirecard.tools.debugger.jdiscript.util.VMLauncher;
+import com.wirecard.tools.debugger.jdiscript.util.VMSocketAttacher;
 import com.wirecard.tools.debugger.model.DataDebug;
 import com.wirecard.tools.debugger.model.DebugMessage;
 import org.slf4j.Logger;
@@ -68,9 +69,12 @@ public class DebuggerController {
         switch (debugMessage.getType()) {
             case CONNECT:
                 // need to set ip & port
-                String OPTIONS = ExampleConstant.CLASSPATH_FROM_JAR;
-                String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE_FROM_JAR);
-                JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
+                // String OPTIONS = ExampleConstant.CLASSPATH_FROM_JAR;
+                // String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE_FROM_JAR);
+                // JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
+
+                VirtualMachine vm = new VMSocketAttacher(dataDebug.getIp(), dataDebug.getPort()).attach();
+                JDIScript j = new JDIScript(vm);
                 GlobalVariables.jdiContainer.get(serviceId).setJdiScript(j);
 
                 j.vmDeathRequest(event -> {
@@ -115,6 +119,7 @@ public class DebuggerController {
         }
 
         if (runCommand) {
+            GlobalVariables.jdiContainer.get(serviceId).setCpb("xx");
             messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
         }
     }
@@ -139,27 +144,31 @@ public class DebuggerController {
                                 String sourceLineCode = "";
                                 for (Location loc : locationList) {
                                     // check, if source code is exist
-                                    if(!sourceMap.containsKey(loc.sourcePath())) {
+                                    if (!sourceMap.containsKey(loc.sourcePath())) {
                                         findPercentage = 0; // reset
                                         continue;
                                     } else {
                                         sourceLineCode = sourceMap.get(loc.sourcePath()).get(loc.lineNumber());
-                                        if(sourceLineCode == null || "".equals(sourceLineCode)) {
+                                        if (sourceLineCode == null || "".equals(sourceLineCode)) {
                                             findPercentage = 0; // reset
                                             continue;
                                         }
                                     }
 
                                     // analyze requirement filter
-                                    if(sourceLineCode.indexOf("logger.debug(") >= 0) findPercentage++;
-                                    else if(findPercentage == 1 && this.filterKey(serviceId, functionId, sourceLineCode) != null) findPercentage++;
+                                    if (sourceLineCode.indexOf("logger.debug(") >= 0) findPercentage++;
+                                    else if (findPercentage == 1 && this.filterKey(serviceId, functionId, sourceLineCode) != null)
+                                        findPercentage++;
                                     else findPercentage = 0;
 
                                     // check if, 2 requirement filter is fulfilled. so create breakpoint
-                                    if(findPercentage < 2) continue;
+                                    if (findPercentage < 2) continue;
                                     findPercentage = 0;
 
-                                    // create breakpoints
+                                    // create breakpoints, if there are no breakpoint in globalVariables
+                                    final String filterKey = this.filterKey(serviceId, functionId, sourceLineCode);
+                                    if (dataDebug.getBreakpointEvents(serviceId).containsKey(filterKey)) continue;
+
                                     ChainingBreakpointRequest chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
                                         System.out.println("be: " + be);
                                         try {
@@ -176,7 +185,6 @@ public class DebuggerController {
 
                                             // get field local variable
                                             List<LocalVariable> localVariables = loc.method().variables();
-                                            Map<String, LocalVariable> localVariableMap = new HashMap<>(localVariables.size());
                                             for (LocalVariable variable : localVariables) {
                                                 if (variable.isVisible(stackFrame)) {
                                                     Value val = stackFrame.getValue(variable);
@@ -185,7 +193,7 @@ public class DebuggerController {
                                             }
 
                                             GlobalVariables.jdiContainer.get(serviceId).setSysVar(sysVar);
-                                            GlobalVariables.jdiContainer.get(serviceId).setClb(1);
+                                            GlobalVariables.jdiContainer.get(serviceId).setCpb(filterKey);
                                             messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
                                             j.vm().suspend();
                                         } catch (Exception ex) {
@@ -193,7 +201,7 @@ public class DebuggerController {
                                         }
                                     }).setEnabled(true);
 
-                                    GlobalVariables.jdiContainer.get(serviceId).addBreakpointEvents(this.filterKey(serviceId, functionId, sourceLineCode), chainingBreakpointRequest);
+                                    GlobalVariables.jdiContainer.get(serviceId).addBreakpointEvents(functionId, filterKey, chainingBreakpointRequest);
                                 }
                             } catch (Exception ex) {
                                 ex.printStackTrace();
@@ -209,9 +217,9 @@ public class DebuggerController {
     private String filterKey(String serviceId, String functionId, String sourceLineCode) {
         List<Map> brCollections = GlobalVariables.jdiContainer.get(serviceId).getBrColl(functionId);
         String keyFilter = null;
-        for(Map map : brCollections) {
-            if(sourceLineCode.indexOf(String.format("\"%s\", \"%s\", Long.valueOf(System.currentTimeMillis()) }));", functionId, map.get("name"))) >= 0) {
-                keyFilter = String.format("%s#%s", functionId, map.get("name"));
+        for (Map map : brCollections) {
+            if (sourceLineCode.indexOf(String.format("\"%s\", \"%s\", Long.valueOf(System.currentTimeMillis()) }));", functionId, map.get("name"))) >= 0) {
+                keyFilter = String.format("%s#%s", functionId, map.get("line"));
                 break;
             }
         }

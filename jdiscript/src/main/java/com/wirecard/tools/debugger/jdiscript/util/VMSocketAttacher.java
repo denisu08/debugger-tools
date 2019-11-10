@@ -8,6 +8,7 @@ import com.sun.jdi.Bootstrap;
 import com.sun.jdi.VirtualMachine;
 import com.sun.jdi.VirtualMachineManager;
 import com.sun.jdi.connect.AttachingConnector;
+import com.sun.jdi.connect.Connector;
 import com.sun.jdi.connect.Connector.Argument;
 import com.sun.jdi.connect.IllegalConnectorArgumentsException;
 
@@ -49,7 +50,8 @@ public class VMSocketAttacher {
         }
         Map<String, Argument> cArgs = connector.defaultArguments();
         cArgs.get("port").setValue(Integer.toString(port));
-        cArgs.get("options").setValue(options);
+
+        // cArgs.get("options").setValue(options);
         cArgs.get("timeout").setValue(Integer.toString(timeout));
         if(host != null) {
             cArgs.get("hostname").setValue(host);

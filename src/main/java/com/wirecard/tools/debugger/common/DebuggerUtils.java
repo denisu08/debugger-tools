@@ -106,11 +106,13 @@ public class DebuggerUtils {
                         // Recompile source
                         String source = printer.toString();
                         String newKeyPath = path.replaceAll("/", "\\\\").substring(0, path.lastIndexOf("class")) + "java";
+                        int indexBootInf = newKeyPath.indexOf(DebuggerConstant.KEY_BOOT_INF);
+                        if (indexBootInf == 0) newKeyPath = newKeyPath.substring(DebuggerConstant.KEY_BOOT_INF.length());
                         BufferedReader br = new BufferedReader(new StringReader(source));
                         String sourceLine = "";
                         int lineNumber = 1;
                         Map<Integer, String> sourceLineCodeMap = new HashMap<>();
-                        while((sourceLine = br.readLine()) != null) {
+                        while ((sourceLine = br.readLine()) != null) {
                             sourceLineCodeMap.put(lineNumber++, sourceLine);
                         }
                         sourceDecompilerMap.put(newKeyPath, sourceLineCodeMap);

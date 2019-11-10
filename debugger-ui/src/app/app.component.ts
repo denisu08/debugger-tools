@@ -33,7 +33,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.webSocketAPI = new DebuggerClientApi(this);
     this.webSocketAPI._connect();
     this.ipValue = '127.0.0.1';
-    this.portValue = '8888';
+    this.portValue = '7777';
   }
 
   ngOnDestroy() {
@@ -49,6 +49,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   isDebugConnected() {
     return this.webSocketAPI.isConnected && this.isFlag(COMMAND_PARAM.IS_CONNECT);
+  }
+
+  isDebugActive() {
+    return this.isDebugConnected() && this.webSocketAPI.queryDataByKey(COMMAND_PARAM.CURRENT_LINE_BREAKPOINT) > 0;
   }
 
   executeAction(command, pData = {}) {
@@ -77,7 +81,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   getCurrentLineBreakpoint() {
-    return this.webSocketAPI.queryDataByKey(this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT);
+    return parseInt(this.webSocketAPI.queryDataByKey(this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT), 0);
   }
 
   getVariables() {

@@ -13,7 +13,7 @@
             <div class="form-group">
               <label for="ipValue">Remote:&nbsp;</label>
               <input type="text" style="max-width: 150px;" [(ngModel)]="ipValue" class="form-control" name="ipValue"
-                     id="ipValue" mask="IP" placeholder="ip" [disabled]="isFlag(COMMAND_PARAM.IS_CONNECT)">
+                     id="ipValue" placeholder="ip" [disabled]="isFlag(COMMAND_PARAM.IS_CONNECT)">
               <input type="text" style="max-width: 80px;" [(ngModel)]="portValue" class="form-control" name="portValue"
                      id="portValue" maxlength="5" placeholder="port" [disabled]="isFlag(COMMAND_PARAM.IS_CONNECT)">
             </div>
@@ -28,11 +28,11 @@
             </button>
           </div>
           <div class="btn-group mr-2" role="group" aria-label="Second group">
-            <button type="button" class="btn btn-info" title="Next" [disabled]="!isDebugConnected()"
+            <button type="button" class="btn btn-info" title="Next" [disabled]="!isDebugActive()"
                     (click)="executeAction(COMMAND_TYPE.NEXT)">
               <i [class]="'fa fa-step-forward'"></i>
             </button>
-            <button type="button" class="btn btn-info" title="Resume" [disabled]="!isDebugConnected()"
+            <button type="button" class="btn btn-info" title="Resume" [disabled]="!isDebugActive()"
                     (click)="executeAction(COMMAND_TYPE.RESUME)">
               <i [class]="'fa fa-forward'"></i>
             </button>
