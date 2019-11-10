@@ -1,8 +1,11 @@
 package com.wirecard.tools.debugger.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jdi.*;
+import com.sun.jdi.request.BreakpointRequest;
+import com.sun.jdi.request.EventRequest;
 import com.sun.tools.jdi.LocationImpl;
 import com.wirecard.tools.debugger.common.DebuggerUtils;
 import com.wirecard.tools.debugger.common.GlobalVariables;
@@ -50,83 +53,99 @@ public class DebuggerController {
     }
 
     @MessageMapping("/debugger/{serviceId}")
-    public void attach(@DestinationVariable String serviceId, @Payload DebugMessage debugMessage, SimpMessageHeaderAccessor headerAccessor) throws Exception {
+    public void attach(@DestinationVariable String serviceId, @Payload DebugMessage debugMessage, SimpMessageHeaderAccessor headerAccessor) {
 
         logger.info(debugMessage.getType() + ": " + debugMessage);
 
-        DataDebug dataDebug = GlobalVariables.jdiContainer.get(serviceId);
-        String plainContent = new String(Base64.getDecoder().decode(debugMessage.getContent()));
-        DataDebug dataDebugFromClient = this.om.readValue(plainContent, DataDebug.class);
-        boolean runCommand = true;
+        try {
+            DataDebug dataDebug = GlobalVariables.jdiContainer.get(serviceId);
+            String plainContent = new String(Base64.getDecoder().decode(debugMessage.getContent()));
+            DataDebug dataDebugFromClient = this.om.readValue(plainContent, DataDebug.class);
+            boolean runCommand = true;
 
-        // if null, so client is pointed as latest data
-        if (dataDebug == null) {
+            // if null, so client is pointed as latest data
+            if (dataDebug == null) {
 
-            dataDebug = dataDebugFromClient;
-            GlobalVariables.jdiContainer.put(serviceId, dataDebug);
-        }
+                dataDebug = dataDebugFromClient;
+                GlobalVariables.jdiContainer.put(serviceId, dataDebug);
+            }
 
-        switch (debugMessage.getType()) {
-            case CONNECT:
-                // need to set ip & port
-                // String OPTIONS = ExampleConstant.CLASSPATH_FROM_JAR;
-                // String MAIN = String.format("%s.HelloWorld", ExampleConstant.PREFIX_PACKAGE_FROM_JAR);
-                // JDIScript j = new JDIScript(new VMLauncher(OPTIONS, MAIN).start());
+            switch (debugMessage.getType()) {
+                case CONNECT:
+                    GlobalVariables.jdiContainer.get(serviceId).setIp(dataDebugFromClient.getIp());
+                    GlobalVariables.jdiContainer.get(serviceId).setPort(dataDebugFromClient.getPort());
+                    VirtualMachine vm = new VMSocketAttacher(GlobalVariables.jdiContainer.get(serviceId).getIp(), GlobalVariables.jdiContainer.get(serviceId).getPort()).attach();
+                    GlobalVariables.jdiContainer.get(serviceId).setJdiScript(new JDIScript(vm));
+                    GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vmDeathRequest(event -> {
+                        this.detachConnection(serviceId);
+                    });
 
-                VirtualMachine vm = new VMSocketAttacher(dataDebug.getIp(), dataDebug.getPort()).attach();
-                JDIScript j = new JDIScript(vm);
-                GlobalVariables.jdiContainer.get(serviceId).setJdiScript(j);
+                    this.collectBreakpointEvents(serviceId, debugMessage.getFunctionId());
 
-                j.vmDeathRequest(event -> {
-                    if (GlobalVariables.jdiContainer.containsKey(serviceId)) {
-                        GlobalVariables.jdiContainer.get(serviceId).clearAndDisconnect();
-                        GlobalVariables.jdiContainer.remove(serviceId);
-                        DebuggerUtils.removeSourceMap(serviceId);
+                    GlobalVariables.jdiContainer.get(serviceId).setConnect(true);
+                    messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
+                    GlobalVariables.jdiContainer.get(serviceId).getJdiScript().run();
+                    runCommand = false;
+                    break;
+                case DISCONNECT:
+                    // remove & clean dataDebug from specific key
+                    this.detachConnection(serviceId);
+                    runCommand = false;
+                    break;
+                case NEXT:
+                    String nextFilterKey = this.getNextFilterKey(GlobalVariables.jdiContainer.get(serviceId).getCpb());
+                    ChainingBreakpointRequest breakpointRequest = GlobalVariables.jdiContainer.get(serviceId).getBreakpointEvents(debugMessage.getFunctionId()).get(nextFilterKey);
+                    if (breakpointRequest != null) {
+                        breakpointRequest.setEnabled(true);
+                        GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vm().resume();
+                        breakpointRequest.setEnabled(false);
+                    } else {
+                        GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vm().resume();
                     }
-                });
+                    break;
+                case RESUME:
+                    GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vm().resume();
+                    break;
+                case SET_BREAKPOINT:
+                    GlobalVariables.jdiContainer.get(serviceId).putBrColl(debugMessage.getFunctionId(), dataDebugFromClient.getCurrentBrColl());
+                    this.collectBreakpointEvents(serviceId, debugMessage.getFunctionId());
+                    break;
+                case MUTE:
+                    GlobalVariables.jdiContainer.get(serviceId).setMute(dataDebugFromClient.isMute());
+                    this.collectBreakpointEvents(serviceId, debugMessage.getFunctionId());
+                    break;
+                default:
+                    break;
+            }
 
-                this.collectBreakpointEvents(serviceId, debugMessage.getFunctionId());
-
-                GlobalVariables.jdiContainer.get(serviceId).setConnect(true);
+            if (runCommand) {
+                GlobalVariables.jdiContainer.get(serviceId).setCpb("xx");
                 messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
-                GlobalVariables.jdiContainer.get(serviceId).getJdiScript().run();
-                runCommand = false;
-                break;
-            case DISCONNECT:
-                // remove & clean dataDebug from specific key
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), "error#" + ex.getMessage());
+        }
+    }
+
+    private void detachConnection(final String serviceId) {
+        if (GlobalVariables.jdiContainer.containsKey(serviceId)) {
+            try {
                 GlobalVariables.jdiContainer.get(serviceId).clearAndDisconnect();
                 GlobalVariables.jdiContainer.remove(serviceId);
-                break;
-            case NEXT:
-                GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vm().resume();
-                break;
-            case RESUME:
-                GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vm().resume();
-                break;
-            case SET_BREAKPOINT:
-                GlobalVariables.jdiContainer.get(serviceId).putBrColl(debugMessage.getFunctionId(), dataDebugFromClient.getCurrentBrColl());
-            default:
-                /*String currentRoomId = (String) headerAccessor.getSessionAttributes().put("service_id", serviceId);
-                if (currentRoomId != null) {
-                    DebugMessage leaveMessage = new DebugMessage();
-                    leaveMessage.setType(DebugMessage.CommandType.SET_BREAKPOINT);
-                    leaveMessage.setStageId(debugMessage.getStageId());
-                    messagingTemplate.convertAndSend(format("/debug-channel/%s", currentRoomId), leaveMessage);
-                }
-                headerAccessor.getSessionAttributes().put("stageId", debugMessage.getStageId());
-                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), debugMessage);*/
-                break;
-        }
-
-        if (runCommand) {
-            GlobalVariables.jdiContainer.get(serviceId).setCpb("xx");
-            messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
+                DebuggerUtils.removeSourceMap(serviceId);
+                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(new DataDebug()));
+            } catch (Exception e) {
+                e.printStackTrace();
+                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), "error#" + e.getMessage());
+            }
         }
     }
 
     private void collectBreakpointEvents(final String serviceId, final String functionId) {
         DataDebug dataDebug = GlobalVariables.jdiContainer.get(serviceId);
         JDIScript j = dataDebug.getJdiScript();
+        if (j == null) return;
 
         Set<String> keySet = dataDebug.getBrColl().keySet();
         for (String functionName : keySet) {
@@ -166,45 +185,52 @@ public class DebuggerController {
                                     findPercentage = 0;
 
                                     // create breakpoints, if there are no breakpoint in globalVariables
-                                    final String filterKey = this.filterKey(serviceId, functionId, sourceLineCode);
-                                    if (dataDebug.getBreakpointEvents(serviceId).containsKey(filterKey)) continue;
+                                    final Map selectedBreakpoint = this.filterKey(serviceId, functionId, sourceLineCode);
+                                    String filterKey = String.format("%s#%s", functionId, selectedBreakpoint.get("line"));
 
-                                    ChainingBreakpointRequest chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
-                                        System.out.println("be: " + be);
-                                        try {
-                                            // get field current class
-                                            List<Field> childFields = m.location().declaringType().allFields();
-                                            StackFrame stackFrame = be.thread().frame(0);
-                                            Map sysVar = new HashMap<>();
-                                            for (Field childField : childFields) {
-                                                if (!childField.isStatic()) {
-                                                    Value val = stackFrame.thisObject().getValue(childField);
-                                                    sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                    ChainingBreakpointRequest chainingBreakpointRequest = dataDebug.getBreakpointEvents(serviceId).get(filterKey);
+                                    if (chainingBreakpointRequest == null) {
+                                        chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
+                                            System.out.println("be: " + be);
+                                            try {
+                                                // get field current class
+                                                List<Field> childFields = m.location().declaringType().allFields();
+                                                StackFrame stackFrame = be.thread().frame(0);
+                                                Map sysVar = new HashMap<>();
+                                                for (Field childField : childFields) {
+                                                    if (!childField.isStatic()) {
+                                                        Value val = stackFrame.thisObject().getValue(childField);
+                                                        sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                    }
                                                 }
-                                            }
 
-                                            // get field local variable
-                                            List<LocalVariable> localVariables = loc.method().variables();
-                                            for (LocalVariable variable : localVariables) {
-                                                if (variable.isVisible(stackFrame)) {
-                                                    Value val = stackFrame.getValue(variable);
-                                                    sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                // get field local variable
+                                                List<LocalVariable> localVariables = loc.method().variables();
+                                                for (LocalVariable variable : localVariables) {
+                                                    if (variable.isVisible(stackFrame)) {
+                                                        Value val = stackFrame.getValue(variable);
+                                                        sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
+                                                    }
                                                 }
+
+                                                GlobalVariables.jdiContainer.get(serviceId).setSysVar(sysVar);
+                                                GlobalVariables.jdiContainer.get(serviceId).setCpb(filterKey);
+                                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
+                                                j.vm().suspend();
+                                            } catch (Exception ex) {
+                                                ex.printStackTrace();
+                                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), "error#" + ex.getMessage());
                                             }
+                                        });
+                                        GlobalVariables.jdiContainer.get(serviceId).addBreakpointEvents(functionId, filterKey, chainingBreakpointRequest);
+                                    }
 
-                                            GlobalVariables.jdiContainer.get(serviceId).setSysVar(sysVar);
-                                            GlobalVariables.jdiContainer.get(serviceId).setCpb(filterKey);
-                                            messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
-                                            j.vm().suspend();
-                                        } catch (Exception ex) {
-                                            ex.printStackTrace();
-                                        }
-                                    }).setEnabled(true);
-
-                                    GlobalVariables.jdiContainer.get(serviceId).addBreakpointEvents(functionId, filterKey, chainingBreakpointRequest);
+                                    boolean isBreakpointEnabled = (Boolean) selectedBreakpoint.getOrDefault("isDebug", false) && !GlobalVariables.jdiContainer.get(serviceId).isMute();
+                                    GlobalVariables.jdiContainer.get(serviceId).getBreakpointEvents(functionId).get(filterKey).setEnabled(isBreakpointEnabled);
                                 }
                             } catch (Exception ex) {
                                 ex.printStackTrace();
+                                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), "error#" + ex.getMessage());
                             }
                         }
                     });
@@ -214,15 +240,20 @@ public class DebuggerController {
         }
     }
 
-    private String filterKey(String serviceId, String functionId, String sourceLineCode) {
+    private Map filterKey(String serviceId, String functionId, String sourceLineCode) {
         List<Map> brCollections = GlobalVariables.jdiContainer.get(serviceId).getBrColl(functionId);
-        String keyFilter = null;
+        Map breakpointSelected = null;
         for (Map map : brCollections) {
             if (sourceLineCode.indexOf(String.format("\"%s\", \"%s\", Long.valueOf(System.currentTimeMillis()) }));", functionId, map.get("name"))) >= 0) {
-                keyFilter = String.format("%s#%s", functionId, map.get("line"));
+                breakpointSelected = map;
                 break;
             }
         }
-        return keyFilter;
+        return breakpointSelected;
+    }
+
+    private String getNextFilterKey(String filterKey) {
+        String[] splitKeys = filterKey.split("#");
+        return String.format("%s#%s", splitKeys[0], Integer.parseInt(splitKeys[1]) + 1);
     }
 }

@@ -34,24 +34,6 @@ public class DataDebug {
         this.clear();
     }
 
-    public void clear() {
-        this.ip = "";
-        this.port = 0;
-        this.connect = false;
-        this.mute = false;
-        this.clb = 0;
-        this.sysVar = new HashMap();
-        this.custVar = new HashMap();
-        this.breakpointEvents.clear();
-        if (brColl != null) {
-            for (String key : brColl.keySet()) {
-                for (Map br : brColl.get(key)) {
-                    br.put("isDebug", false);
-                }
-            }
-        }
-    }
-
     public String getCpb() {
         return cpb;
     }
@@ -165,12 +147,30 @@ public class DataDebug {
         this.custVar = custVar;
     }
 
+    public void clear() {
+        this.ip = "";
+        this.port = 0;
+        this.connect = false;
+        this.mute = false;
+        this.clb = 0;
+        this.sysVar = new HashMap();
+        this.custVar = new HashMap();
+        this.breakpointEvents.clear();
+        if (brColl != null) {
+            for (String key : brColl.keySet()) {
+                for (Map br : brColl.get(key)) {
+                    br.put("isDebug", false);
+                }
+            }
+        }
+    }
+
     public void clearAndDisconnect() {
         this.clear();
-//        try {
-//            if (this.jdiScript != null || this.jdiScript.vm().process().isAlive()) getJdiScript().vm().exit(0);
-//        } catch (Exception ex) {}
-        this.getJdiScript().vm().resume();
+        try {
+            if (this.jdiScript != null || this.jdiScript.vm().process().isAlive()) getJdiScript().vm().dispose();
+        } catch (Exception ex) {}
+        // this.getJdiScript().vm().resume();
         this.jdiScript = null;
     }
 

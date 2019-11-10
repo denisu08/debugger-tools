@@ -116,15 +116,17 @@ export class DebuggerClientApi {
       case this.COMMAND_TYPE.DISCONNECT:
       case this.COMMAND_TYPE.RESUME:    // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
       case this.COMMAND_TYPE.NEXT:      // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] += 1;
+        break;
       case this.COMMAND_TYPE.MUTE:
+        payload[this.COMMAND_PARAM.IS_MUTE] = !this.data[this.COMMAND_PARAM.IS_MUTE];
         break;
       case this.COMMAND_TYPE.CONNECT:
-        payload[COMMAND_PARAM.IP] = pData.ip;
-        payload[COMMAND_PARAM.PORT] = pData.port;
-        payload[COMMAND_PARAM.BREAKPOINTS] = this.data[COMMAND_PARAM.BREAKPOINTS];
+        payload[this.COMMAND_PARAM.IP] = pData.ip;
+        payload[this.COMMAND_PARAM.PORT] = pData.port;
+        payload[this.COMMAND_PARAM.BREAKPOINTS] = this.data[this.COMMAND_PARAM.BREAKPOINTS];
         break;
       case this.COMMAND_TYPE.SET_BREAKPOINT:
-        payload[COMMAND_PARAM.CURRENT_BREAKPOINTS] = this.changeBreakpoint(pData.line, pData.flag);
+        payload[this.COMMAND_PARAM.CURRENT_BREAKPOINTS] = this.changeBreakpoint(pData.line, pData.flag);
         break;
       case this.COMMAND_TYPE.ADD_VARIABLE:
         this.addVariable(pData);
@@ -136,6 +138,7 @@ export class DebuggerClientApi {
         break;
     }
     // send command to backend
+    this.data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
     this._sendCommand(this.appComponent.serviceId,
       {functionId: this.appComponent.functionId, type: commandType, content: btoa(JSON.stringify(payload))});
   }
@@ -176,12 +179,17 @@ export class DebuggerClientApi {
 
   onMessageReceived(message) {
     console.log('Message Receieved from Server :: ' + message);
-    this.data = JSON.parse(message.body);
-    if (this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT in this.data
-      && this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT] !== this.DEFAULT_POINTER_BREAKPOINT) {
-      const params = this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT].split('#');
-      this.appComponent.functionId = params[0];
-      this.data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = params[1];
+    if (message.body.indexOf('error#') === 0) {
+      vex.dialog.alert(message.body.replace('error#', ''));
+    } else {
+      this.data = JSON.parse(message.body);
+      if (this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT in this.data
+        && this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT]
+        && this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT] !== this.DEFAULT_POINTER_BREAKPOINT) {
+        const params = this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT].split('#');
+        this.appComponent.functionId = params[0];
+        this.data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = params[1];
+      }
     }
   }
 }
