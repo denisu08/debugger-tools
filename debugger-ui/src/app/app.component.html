@@ -23,23 +23,23 @@
           <div class="btn-group mr-2" role="group" aria-label="Second group">
             <button [class]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'btn btn-danger' : 'btn btn-success'"
                     (click)="isFlag(COMMAND_PARAM.IS_CONNECT) ? executeAction(COMMAND_TYPE.DISCONNECT) : executeAction(COMMAND_TYPE.CONNECT, {ip: ipValue, port: portValue})"
-                    [title]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'Stop' : 'Debug'" [disabled]="!isConnected()">
+                    [title]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'Stop' : 'Debug'" [disabled]="isWaitResponse() || !isConnected()">
               <i [class]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'fa fa-stop' : 'fa fa-play'"></i>
             </button>
           </div>
           <div class="btn-group mr-2" role="group" aria-label="Second group">
-            <button type="button" class="btn btn-info" title="Next" [disabled]="!isDebugActive()"
+            <button type="button" class="btn btn-info" title="Next" [disabled]="isWaitResponse() || !isDebugActive()"
                     (click)="executeAction(COMMAND_TYPE.NEXT)">
               <i [class]="'fa fa-step-forward'"></i>
             </button>
-            <button type="button" class="btn btn-info" title="Resume" [disabled]="!isDebugActive()"
+            <button type="button" class="btn btn-info" title="Resume" [disabled]="isWaitResponse() || !isDebugActive()"
                     (click)="executeAction(COMMAND_TYPE.RESUME)">
               <i [class]="'fa fa-forward'"></i>
             </button>
           </div>
           <div class="btn-group" role="group" aria-label="Third group">
             <button type="button" [class]="isFlag(COMMAND_PARAM.IS_MUTE) ? 'btn btn-info active' : 'btn btn-info'"
-                    [disabled]="!isDebugConnected()"
+                    [disabled]="isWaitResponse() || !isDebugConnected()"
                     title="Mute breakpoint" (click)="executeAction(COMMAND_TYPE.MUTE)">
               <i [class]="isFlag(COMMAND_PARAM.IS_MUTE) ? 'fa fa-unlink' : 'fa fa-link'"></i>
             </button>

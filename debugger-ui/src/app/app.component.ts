@@ -43,6 +43,10 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  isWaitResponse() {
+    return this.webSocketAPI.waitResponse;
+  }
+
   isConnected() {
     return this.webSocketAPI.isConnected;
   }

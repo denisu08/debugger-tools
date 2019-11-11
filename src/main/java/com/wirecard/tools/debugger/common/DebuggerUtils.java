@@ -17,9 +17,12 @@ import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class DebuggerUtils {
@@ -74,14 +77,18 @@ public class DebuggerUtils {
         return ExpressionParser.evaluate(expr, f.virtualMachine(), frameGetter);
     }
 
-    public static Map<String, Map<Integer, String>> getSourceMap(String serviceId) throws Exception {
+    public static Map<String, Map<Integer, String>> getSourceMap(final String serviceId) throws Exception {
+        return DebuggerUtils.getSourceMap(serviceId, "");
+    }
+
+    public static Map<String, Map<Integer, String>> getSourceMap(String serviceId, String sourceJarPath) throws Exception {
         Map<String, Map<Integer, String>> sourceDecompilerMap = GlobalVariables.sourceMap.get(serviceId);
 
         if (sourceDecompilerMap == null) {
             sourceDecompilerMap = new HashMap<>();
-            // TODO: adapt to config later
-            Path filejarPath = Paths.get(String.format("./testBundle/%s-1.0-SNAPSHOT.tar", serviceId.toLowerCase()));
-            System.out.println("start - compile source: " + filejarPath.toString());
+            Path filejarPath = Paths.get(sourceJarPath);
+            System.out.println("decompiler is starting (" + filejarPath.toString() + ")");
+            long startTime = System.nanoTime();
             FileInputStream inputStream = new FileInputStream(filejarPath.toFile());
 
             try (InputStream is = inputStream) {
@@ -126,7 +133,8 @@ public class DebuggerUtils {
                         String source = printer.toString();
                         String newKeyPath = path.replaceAll("/", "\\\\").substring(0, path.lastIndexOf("class")) + "java";
                         int indexBootInf = newKeyPath.indexOf(DebuggerConstant.KEY_BOOT_INF);
-                        if (indexBootInf == 0) newKeyPath = newKeyPath.substring(DebuggerConstant.KEY_BOOT_INF.length());
+                        if (indexBootInf == 0)
+                            newKeyPath = newKeyPath.substring(DebuggerConstant.KEY_BOOT_INF.length());
                         BufferedReader br = new BufferedReader(new StringReader(source));
                         String sourceLine = "";
                         int lineNumber = 1;
@@ -138,7 +146,9 @@ public class DebuggerUtils {
                     }
                 }
             }
-            System.out.println("done - compile source: " + filejarPath.toString());
+            long endTime = System.nanoTime();
+            long durationInMillis = TimeUnit.NANOSECONDS.toMillis((endTime - startTime));  // Total execution time in nano seconds
+            System.out.println(String.format("decompiler has done in %s ( " + filejarPath.toString() + ")", durationInMillis + "ms"));
             GlobalVariables.sourceMap.put(serviceId, sourceDecompilerMap);
         }
 

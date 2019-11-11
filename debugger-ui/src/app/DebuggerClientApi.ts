@@ -11,6 +11,7 @@ export class DebuggerClientApi {
   appComponent: AppComponent;
   data: any;
   isConnected: boolean;
+  waitResponse: boolean;
 
   tm: any;
 
@@ -34,6 +35,7 @@ export class DebuggerClientApi {
     };
     this.appComponent = appComponent;
     this.isConnected = false;
+    this.waitResponse = false;
   }
 
   _getTopic(pTopic: string) {
@@ -49,24 +51,26 @@ export class DebuggerClientApi {
     };*/
 
     const that = this;
-    that.stompClient.connect({serviceId: this.appComponent.serviceId}, (frame) => {
-      that.stompClient.subscribe(`/debug-channel/${that.appComponent.serviceId}`, (sdkEvent) => {
-        const msg = sdkEvent.data;
-        if (msg === '__pong__') {
-          that.pong();
-        } else {
-          that.onMessageReceived(sdkEvent);
-        }
-      });
-      that.stompClient.heartbeat.outgoing = 20000;
-      that.stompClient.heartbeat.incoming = 0;
-      that.stompClient.reconnect_delay = 2000;
-      that.isConnected = true;
+    that.stompClient.connect(
+      {serviceId: this.appComponent.serviceId, sourcePathJar: './helloworld-springboot/build/libs/gs-spring-boot-0.1.0.jar'},
+      (frame) => {
+        that.stompClient.subscribe(`/debug-channel/${that.appComponent.serviceId}`, (sdkEvent) => {
+          const msg = sdkEvent.data;
+          if (msg === '__pong__') {
+            that.pong();
+          } else {
+            that.onMessageReceived(sdkEvent);
+          }
+        });
+        that.stompClient.heartbeat.outgoing = 20000;
+        that.stompClient.heartbeat.incoming = 0;
+        that.stompClient.reconnect_delay = 2000;
+        that.isConnected = true;
 
-      this.patchBreakpointFromService(that);
+        this.patchBreakpointFromService(that);
 
-      that.appComponent._forceDraw();
-    }, this.errorCallBack.bind(this));
+        that.appComponent._forceDraw();
+      }, this.errorCallBack.bind(this));
   }
 
   patchBreakpointFromService(that: DebuggerClientApi) {
@@ -114,6 +118,8 @@ export class DebuggerClientApi {
     const payload = {};
     switch (commandType) {
       case this.COMMAND_TYPE.DISCONNECT:
+        this.waitResponse = true;
+        break;
       case this.COMMAND_TYPE.RESUME:    // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
       case this.COMMAND_TYPE.NEXT:      // this._data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] += 1;
         break;
@@ -124,6 +130,7 @@ export class DebuggerClientApi {
         payload[this.COMMAND_PARAM.IP] = pData.ip;
         payload[this.COMMAND_PARAM.PORT] = pData.port;
         payload[this.COMMAND_PARAM.BREAKPOINTS] = this.data[this.COMMAND_PARAM.BREAKPOINTS];
+        this.waitResponse = true;
         break;
       case this.COMMAND_TYPE.SET_BREAKPOINT:
         payload[this.COMMAND_PARAM.CURRENT_BREAKPOINTS] = this.changeBreakpoint(pData.line, pData.flag);
@@ -141,6 +148,10 @@ export class DebuggerClientApi {
     this.data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
     this._sendCommand(this.appComponent.serviceId,
       {functionId: this.appComponent.functionId, type: commandType, content: btoa(JSON.stringify(payload))});
+  }
+
+  _waitResponse() {
+
   }
 
   _sendCommand(serviceId: string, body: any) {
@@ -179,6 +190,7 @@ export class DebuggerClientApi {
 
   onMessageReceived(message) {
     console.log('Message Receieved from Server :: ' + message);
+    this.waitResponse = false;
     if (message.body.indexOf('error#') === 0) {
       vex.dialog.alert(message.body.replace('error#', ''));
     } else {

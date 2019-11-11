@@ -56,7 +56,6 @@ public class DebuggerController {
 
             // if null, so client is pointed as latest data
             if (dataDebug == null) {
-
                 dataDebug = dataDebugFromClient;
                 GlobalVariables.jdiContainer.put(serviceId, dataDebug);
             }
@@ -65,13 +64,17 @@ public class DebuggerController {
                 case CONNECT:
                     GlobalVariables.jdiContainer.get(serviceId).setIp(dataDebugFromClient.getIp());
                     GlobalVariables.jdiContainer.get(serviceId).setPort(dataDebugFromClient.getPort());
-                    VirtualMachine vm = new VMSocketAttacher(GlobalVariables.jdiContainer.get(serviceId).getIp(), GlobalVariables.jdiContainer.get(serviceId).getPort()).attach();
-                    GlobalVariables.jdiContainer.get(serviceId).setJdiScript(new JDIScript(vm));
-                    GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vmDeathRequest(event -> {
-                        this.detachConnection(serviceId);
-                    });
 
-                    this.collectBreakpointEvents(serviceId, debugMessage.getFunctionId());
+                    // TODO: checking (ip + port + serviceId) for connect to runtime server
+
+                    if(GlobalVariables.jdiContainer.get(serviceId).getJdiScript() == null) {
+                        VirtualMachine vm = new VMSocketAttacher(GlobalVariables.jdiContainer.get(serviceId).getIp(), GlobalVariables.jdiContainer.get(serviceId).getPort()).attach();
+                        GlobalVariables.jdiContainer.get(serviceId).setJdiScript(new JDIScript(vm));
+                        GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vmDeathRequest(event -> {
+                            this.detachConnection(serviceId);
+                        });
+                        this.collectBreakpointEvents(serviceId, debugMessage.getFunctionId());
+                    }
 
                     GlobalVariables.jdiContainer.get(serviceId).setConnect(true);
                     messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
@@ -153,33 +156,18 @@ public class DebuggerController {
                                 // filter based on source code & stageList
                                 Map<String, Map<Integer, String>> sourceMap = DebuggerUtils.getSourceMap(serviceId);
                                 // System.out.println("decompile:: " + sourceMap);
-                                int findPercentage = 0;     // 1. find logger.debug, 2. String.format, 3. serviceId, functionId
                                 String sourceLineCode = "";
                                 for (Location loc : locationList) {
                                     // check, if source code is exist
-                                    if (!sourceMap.containsKey(loc.sourcePath())) {
-                                        findPercentage = 0; // reset
-                                        continue;
-                                    } else {
-                                        sourceLineCode = sourceMap.get(loc.sourcePath()).get(loc.lineNumber());
-                                        if (sourceLineCode == null || "".equals(sourceLineCode)) {
-                                            findPercentage = 0; // reset
-                                            continue;
-                                        }
-                                    }
+                                    if (!sourceMap.containsKey(loc.sourcePath())) continue;
+                                    sourceLineCode = sourceMap.get(loc.sourcePath()).get(loc.lineNumber());
+                                    if (sourceLineCode == null || "".equals(sourceLineCode)) continue;
 
                                     // analyze requirement filter
-                                    if (sourceLineCode.indexOf("logger.debug(") >= 0) findPercentage++;
-                                    else if (findPercentage == 1 && this.filterKey(serviceId, functionId, sourceLineCode) != null)
-                                        findPercentage++;
-                                    else findPercentage = 0;
-
-                                    // check if, 2 requirement filter is fulfilled. so create breakpoint
-                                    if (findPercentage < 2) continue;
-                                    findPercentage = 0;
+                                    if (this.filterKeyBySourceLineCode(serviceId, functionId, sourceLineCode) == null) continue;
 
                                     // create breakpoints, if there are no breakpoint in globalVariables
-                                    final Map selectedBreakpoint = this.filterKey(serviceId, functionId, sourceLineCode);
+                                    final Map selectedBreakpoint = this.filterKeyBySourceLineCode(serviceId, functionId, sourceLineCode);
                                     String filterKey = String.format("%s#%s", functionId, selectedBreakpoint.get("line"));
 
                                     ChainingBreakpointRequest chainingBreakpointRequest = dataDebug.getBreakpointEvents(serviceId).get(filterKey);
@@ -254,11 +242,11 @@ public class DebuggerController {
         return breakpointSelected;
     }
 
-    private Map filterKey(String serviceId, String functionId, String sourceLineCode) {
+    private Map filterKeyBySourceLineCode(String serviceId, String functionId, String sourceLineCode) {
         List<Map> brCollections = GlobalVariables.jdiContainer.get(serviceId).getBrColl(functionId);
         Map breakpointSelected = null;
         for (Map map : brCollections) {
-            if (sourceLineCode.indexOf(String.format("\"%s\", \"%s\", Long.valueOf(System.currentTimeMillis()) }));", functionId, map.get("name"))) >= 0) {
+            if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get("name"))) >= 0) {
                 breakpointSelected = map;
                 break;
             }

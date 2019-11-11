@@ -21,7 +21,7 @@ public class DebuggerChannelInterceptor implements ChannelInterceptor {
             MultiValueMap<String, String> multiValueMap = headers.get(StompHeaderAccessor.NATIVE_HEADERS, MultiValueMap.class);
             if (multiValueMap.containsKey("serviceId")) {
                 try {
-                    DebuggerUtils.getSourceMap(multiValueMap.getFirst("serviceId"));
+                    DebuggerUtils.getSourceMap(multiValueMap.getFirst("serviceId"), multiValueMap.getFirst("sourcePathJar"));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
