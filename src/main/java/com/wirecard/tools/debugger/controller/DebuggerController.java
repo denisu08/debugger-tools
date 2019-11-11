@@ -1,18 +1,13 @@
 package com.wirecard.tools.debugger.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jdi.*;
-import com.sun.jdi.request.BreakpointRequest;
-import com.sun.jdi.request.EventRequest;
-import com.sun.tools.jdi.LocationImpl;
 import com.wirecard.tools.debugger.common.DebuggerUtils;
 import com.wirecard.tools.debugger.common.GlobalVariables;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
-import com.wirecard.tools.debugger.jdiscript.util.VMLauncher;
 import com.wirecard.tools.debugger.jdiscript.util.VMSocketAttacher;
 import com.wirecard.tools.debugger.model.DataDebug;
 import com.wirecard.tools.debugger.model.DebugMessage;
@@ -25,12 +20,8 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
-import java.io.BufferedReader;
-import java.io.LineNumberReader;
-import java.io.StringReader;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
@@ -98,7 +89,10 @@ public class DebuggerController {
                     if (breakpointRequest != null) {
                         breakpointRequest.setEnabled(true);
                         GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vm().resume();
-                        breakpointRequest.setEnabled(false);
+
+                        final Map selectedBreakpoint = this.getBreakpointByFilterkey(serviceId, nextFilterKey);
+                        boolean isBreakpointEnabled = (Boolean) selectedBreakpoint.getOrDefault("isDebug", false) && !GlobalVariables.jdiContainer.get(serviceId).isMute();
+                        breakpointRequest.setEnabled(isBreakpointEnabled);
                     } else {
                         GlobalVariables.jdiContainer.get(serviceId).getJdiScript().vm().resume();
                     }
@@ -218,7 +212,7 @@ public class DebuggerController {
 
                                                 Map customVar = new HashMap<>();
                                                 Value val = DebuggerUtils.evaluate(be.thread().frame(0), "\"testKeren\".length()");
-                                                customVar.put("coba2", DebuggerUtils.getJavaValue(val, be.thread()));
+                                                customVar.put("\"testKeren\".length()", DebuggerUtils.getJavaValue(val, be.thread()));
                                                 GlobalVariables.jdiContainer.get(serviceId).setCustVar(customVar);
 
                                                 GlobalVariables.jdiContainer.get(serviceId).setCpb(filterKey);
@@ -245,6 +239,19 @@ public class DebuggerController {
             j.vm().allClasses().forEach(c -> setConstructBrks.accept(c));
             j.onClassPrep(cp -> setConstructBrks.accept(cp.referenceType()));
         }
+    }
+
+    private Map getBreakpointByFilterkey(String serviceId, String filterKey) {
+        String[] filters = filterKey.split("#");
+        List<Map> brCollections = GlobalVariables.jdiContainer.get(serviceId).getBrColl(filters[0]);
+        Map breakpointSelected = null;
+        for (Map map : brCollections) {
+            if (filters[1].equalsIgnoreCase(String.valueOf(map.get("line")))) {
+                breakpointSelected = map;
+                break;
+            }
+        }
+        return breakpointSelected;
     }
 
     private Map filterKey(String serviceId, String functionId, String sourceLineCode) {

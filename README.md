@@ -23,4 +23,4 @@ TASK:
 - When current line breakpoint has changed from backend, function dropdown is changed automatically based on current status break event.
 - Add custom expression watcher.
 - Add break filter by criteria.
-- 
+- Class Empty, do nothing, only flag breakpoint
