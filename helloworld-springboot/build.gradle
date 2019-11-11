@@ -18,16 +18,6 @@ bootJar {
     version =  '0.1.0'
 }
 
-jar {
-    manifest {
-        attributes "Main-Class": "com.wirecard.tools.exercise.Application"
-    }
-
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-}
-
 repositories {
     mavenCentral()
 }
@@ -35,10 +25,16 @@ repositories {
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-dependencies {
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
+jar {
+    manifest {
+        attributes "Main-Class": "com.wirecard.tools.exercise.Application"
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
 
+dependencies {
     compile("org.springframework.boot:spring-boot-starter-web")
     // tag::actuator[]
     compile("org.springframework.boot:spring-boot-starter-actuator")
