@@ -1,4 +1,5 @@
 export const COMMAND_TYPE = Object.freeze({
+  SYNC: 'SYNC',
   CONNECT: 'CONNECT',
   DISCONNECT: 'DISCONNECT',
   RESUME: 'RESUME',

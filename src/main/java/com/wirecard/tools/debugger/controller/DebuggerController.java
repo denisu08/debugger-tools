@@ -50,6 +50,14 @@ public class DebuggerController {
 
         try {
             DataDebug dataDebug = GlobalVariables.jdiContainer.get(serviceId);
+
+            if(DebugMessage.CommandType.SYNC == debugMessage.getType()) {
+                if(GlobalVariables.jdiContainer.containsKey(serviceId)) {
+                    messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
+                }
+                return;
+            }
+
             String plainContent = new String(Base64.getDecoder().decode(debugMessage.getContent()));
             DataDebug dataDebugFromClient = this.om.readValue(plainContent, DataDebug.class);
             boolean runCommand = true;

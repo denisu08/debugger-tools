@@ -82,6 +82,8 @@ export class DebuggerClientApi {
         .toPromise()
         .then(response => {
           this.data[this.COMMAND_PARAM.BREAKPOINTS][that.appComponent.functionId] = response.body;
+          this._sendCommand(this.appComponent.serviceId,
+            {functionId: this.appComponent.functionId, type: this.COMMAND_TYPE.SYNC});
         })
         .catch(console.log);
     }

@@ -38,19 +38,6 @@ public class DebuggerSocketEventListener {
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         logger.info("Received a new web socket connection." + headerAccessor);
-
-        /*
-        GenericMessage genericMessage = (GenericMessage) headerAccessor.getMessageHeaders().get("simpConnectMessage");
-        Map<String, List<String>> multiValueMap = genericMessage.getHeaders().get(StompHeaderAccessor.NATIVE_HEADERS, Map.class);
-        if (multiValueMap.containsKey("serviceId") && GlobalVariables.jdiContainer.containsKey(multiValueMap.get("serviceId").get(0))) {
-            try {
-                String serviceId = multiValueMap.get("serviceId").get(0);
-                messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        */
     }
 
     @EventListener
