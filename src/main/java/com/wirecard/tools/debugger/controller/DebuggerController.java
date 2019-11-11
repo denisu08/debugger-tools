@@ -193,6 +193,7 @@ public class DebuggerController {
                                         chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
                                             System.out.println("be: " + be);
                                             try {
+                                                // start - grab system variables
                                                 // get field current class
                                                 List<Field> childFields = m.location().declaringType().allFields();
                                                 StackFrame stackFrame = be.thread().frame(0);
@@ -212,8 +213,14 @@ public class DebuggerController {
                                                         sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
                                                     }
                                                 }
-
                                                 GlobalVariables.jdiContainer.get(serviceId).setSysVar(sysVar);
+                                                // end - grab system variables
+
+                                                Map customVar = new HashMap<>();
+                                                Value val = DebuggerUtils.evaluate(be.thread().frame(0), "\"testKeren\".length()");
+                                                customVar.put("coba2", DebuggerUtils.getJavaValue(val, be.thread()));
+                                                GlobalVariables.jdiContainer.get(serviceId).setCustVar(customVar);
+
                                                 GlobalVariables.jdiContainer.get(serviceId).setCpb(filterKey);
                                                 messagingTemplate.convertAndSend(format("/debug-channel/%s", serviceId), om.writeValueAsString(GlobalVariables.jdiContainer.get(serviceId)));
                                                 j.vm().suspend();

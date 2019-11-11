@@ -1,6 +1,7 @@
 package com.wirecard.tools.debugger.common;
 
 import com.sun.jdi.*;
+import com.sun.tools.example.debug.expr.ExpressionParser;
 import com.wirecard.tools.debugger.loader.ZipLoader;
 import org.jd.core.v1.model.message.Message;
 import org.jd.core.v1.service.converter.classfiletojavasyntax.ClassFileToJavaSyntaxProcessor;
@@ -15,6 +16,7 @@ import javax.validation.constraints.NotNull;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +55,23 @@ public class DebuggerUtils {
 
     public static void removeSourceMap(String serviceId) {
         GlobalVariables.sourceMap.remove(serviceId);
+    }
+
+    /*
+     * Evaluate an expression.
+     */
+
+    public static Value evaluate(final StackFrame f, String expr) throws Exception {
+        ExpressionParser.GetFrame frameGetter = null;
+        // ensureActiveSession();
+        if (f != null) {
+            frameGetter = new ExpressionParser.GetFrame() {
+                public StackFrame get() /* throws IncompatibleThreadStateException */ {
+                    return f;
+                }
+            };
+        }
+        return ExpressionParser.evaluate(expr, f.virtualMachine(), frameGetter);
     }
 
     public static Map<String, Map<Integer, String>> getSourceMap(String serviceId) throws Exception {
