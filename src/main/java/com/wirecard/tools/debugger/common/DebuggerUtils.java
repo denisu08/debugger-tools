@@ -4,21 +4,12 @@ import com.sun.jdi.*;
 import com.sun.tools.example.debug.expr.ExpressionParser;
 import com.wirecard.tools.debugger.loader.ZipLoader;
 import org.jd.core.v1.model.message.Message;
-import org.jd.core.v1.service.converter.classfiletojavasyntax.ClassFileToJavaSyntaxProcessor;
-import org.jd.core.v1.service.deserializer.classfile.DeserializeClassFileProcessor;
-import org.jd.core.v1.service.fragmenter.javasyntaxtojavafragment.JavaSyntaxToJavaFragmentProcessor;
-import org.jd.core.v1.service.layouter.LayoutFragmentProcessor;
-import org.jd.core.v1.service.tokenizer.javafragmenttotoken.JavaFragmentToTokenProcessor;
-import org.jd.core.v1.service.writer.WriteTokenProcessor;
-import printer.PlainTextPrinter;
+import com.wirecard.tools.debugger.printer.PlainTextPrinter;
 
 import javax.validation.constraints.NotNull;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -78,7 +69,7 @@ public class DebuggerUtils {
     }
 
     public static Map<String, Map<Integer, String>> getSourceMap(final String serviceId) throws Exception {
-        return DebuggerUtils.getSourceMap(serviceId, "");
+        return DebuggerUtils.getSourceMap(serviceId, null);
     }
 
     public static Map<String, Map<Integer, String>> getSourceMap(String serviceId, String sourceJarPath) throws Exception {

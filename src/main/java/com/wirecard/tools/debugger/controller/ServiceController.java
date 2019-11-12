@@ -26,7 +26,7 @@ public class ServiceController {
     @GetMapping(value = "/${spring.data.rest.base-path}/service/{serviceId}/{stageId}")
     public List queryServiceById(@PathVariable String serviceId, @PathVariable String stageId) {
         JSONArray result = null;
-        if(serviceId.equals("HelloWorld")) {
+        if(serviceId.equals("HelloController")) {
             if(stageId.equals("startMe")) {
                 result = gson.fromJson("[{\"line\":1,\"name\":\"sayHello\",\"stage\":\"Call Function\",\"isDebug\":false},{\"line\":2,\"name\":\"updateVar\",\"stage\":\"Call Function\",\"isDebug\":false},{\"line\":3,\"name\":\"newInstance\",\"stage\":\"Operation\",\"isDebug\":false}]", JSONArray.class);
             } else if(stageId.equals("searchUserByCriteria")) {

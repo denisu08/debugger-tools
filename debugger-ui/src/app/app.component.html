@@ -23,7 +23,8 @@
           <div class="btn-group mr-2" role="group" aria-label="Second group">
             <button [class]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'btn btn-danger' : 'btn btn-success'"
                     (click)="isFlag(COMMAND_PARAM.IS_CONNECT) ? executeAction(COMMAND_TYPE.DISCONNECT) : executeAction(COMMAND_TYPE.CONNECT, {ip: ipValue, port: portValue})"
-                    [title]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'Stop' : 'Debug'" [disabled]="isWaitResponse() || !isConnected()">
+                    [title]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'Stop' : 'Debug'"
+                    [disabled]="isWaitResponse() || !isConnected()">
               <i [class]="isFlag(COMMAND_PARAM.IS_CONNECT) ? 'fa fa-stop' : 'fa fa-play'"></i>
             </button>
           </div>
@@ -51,6 +52,16 @@
         <div class="row">
           <!-- List function -->
           <div class="col-md-6">
+            <div class="form-inline">
+              <label for="exampleFormControlSelect1">ProcessFlow:&nbsp;</label>
+              <select class="form-control" id="processFlowId" [value]="processFlowId">
+                <option>PCRBeneficiaryListSearchFlow</option>
+                <option>PCRBeneficiaryListDetailFlow</option>
+                <option>PCRBeneficiaryListGetAllServiceTypeFlow</option>
+                <option>PCRBeneficiaryListGetAllBranchFlow</option>
+              </select>
+            </div>
+            <br/>
             <div class="form-inline">
               <label for="exampleFormControlSelect1">Functions:&nbsp;</label>
               <select class="form-control" id="exampleFormControlSelect1" [value]="functionId"

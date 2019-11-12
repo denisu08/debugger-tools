@@ -33,4 +33,10 @@ dependencies {
     compile files(org.gradle.internal.jvm.Jvm.current().toolsJar)
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
+}
+
+test {
+    useJUnitPlatform()
 }

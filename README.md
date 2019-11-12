@@ -14,7 +14,7 @@ Features:
 2. Add variable, click plus green button.
 3. View: Stage List & Variable List(System + Custom)
 
-Data Projection: IP > Service
+Data Projection: ProcessFlowGenerator + IP > Service
 
 TASK:
 - When open popup, send ping to load & decompile source code. (COMMAND: PING)

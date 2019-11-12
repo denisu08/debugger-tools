@@ -1,4 +1,4 @@
-package printer;
+package com.wirecard.tools.debugger.printer;
 
 import org.jd.core.v1.api.printer.Printer;
 

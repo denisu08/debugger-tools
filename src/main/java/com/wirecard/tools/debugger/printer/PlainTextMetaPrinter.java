@@ -1,4 +1,4 @@
-package printer;
+package com.wirecard.tools.debugger.printer;
 
 public class PlainTextMetaPrinter extends PlainTextPrinter {
     // --- Printer --- //
