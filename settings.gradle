@@ -1,2 +1,3 @@
 rootProject.name = 'debugger-tools'
 include ':jdiscript'
+include ':helloworld-springboot'

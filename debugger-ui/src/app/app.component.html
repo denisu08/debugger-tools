@@ -83,7 +83,7 @@
               <tbody>
               <tr *ngFor="let brPoint of getBreakpoints() ; let i = index"
                   [class]="brPoint.line === getCurrentLineBreakpoint() ? 'info' : ''">
-                <div class="checkbox">
+                <div class="checkbox" style="margin-top: 5px;">
                   <label>
                     <input type="checkbox" value="isDebug" id="flag-1" name="flag-1" [checked]="brPoint.isDebug"
                            (change)="executeAction(COMMAND_TYPE.SET_BREAKPOINT, { 'line': brPoint.line, 'flag': $event.target.checked })">

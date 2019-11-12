@@ -40,7 +40,10 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-actuator")
     // end::actuator[]
     // tag::tests[]
-    testCompile("org.springframework.boot:spring-boot-starter-test")
+    // testCompile("org.springframework.boot:spring-boot-starter-test")
     // end::tests[]
 }
 
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.1'
+}
