@@ -71,6 +71,10 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.webSocketAPI.queryDataByKey(command);
   }
 
+  isDebugReady() {
+    return this.webSocketAPI.isConnected && this.webSocketAPI.breakpointReadyFlag;
+  }
+
   isShowVariable() {
     return this.isFlag(COMMAND_PARAM.IS_CONNECT);
   }
@@ -80,14 +84,14 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   getListProcessFlow() {
-    if(this.listProcessFlowGenerator) {
+    if (this.listProcessFlowGenerator) {
       return Object.keys(this.listProcessFlowGenerator);
     }
     return [];
   }
 
   getListFunction() {
-    if(this.listProcessFlowGenerator && this.processFlowId in this.listProcessFlowGenerator) {
+    if (this.listProcessFlowGenerator && this.processFlowId in this.listProcessFlowGenerator) {
       return Object.keys(this.listProcessFlowGenerator[this.processFlowId]);
     }
     return [];

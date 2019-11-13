@@ -3,6 +3,7 @@ package com.wirecard.tools.debugger.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wirecard.tools.debugger.common.DebuggerConstant;
 import com.wirecard.tools.debugger.common.DebuggerUtils;
 import com.wirecard.tools.debugger.common.GlobalVariables;
 import com.wirecard.tools.debugger.model.DebugMessage;
@@ -44,16 +45,16 @@ public class DebuggerSocketEventListener {
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
 
-        String stageId = (String) headerAccessor.getSessionAttributes().get("stage_id");
-        String serviceId = (String) headerAccessor.getSessionAttributes().get("service_id");
-        if (stageId != null) {
-            logger.info("StageId Disconnected: " + stageId);
+        // String stageId = (String) headerAccessor.getSessionAttributes().get("stage_id");
+        String paramId = (String) headerAccessor.getSessionAttributes().get(DebuggerConstant.DEBUGGER_CHANNEL_ID);
+        if (paramId != null) {
+            logger.info("paramId Disconnected: " + paramId);
 
             DebugMessage debugMessage = new DebugMessage();
             debugMessage.setType(DebugMessage.CommandType.DISCONNECT);
             // debugMessage.setStageId(stageId);
 
-            messagingTemplate.convertAndSend(format("/channel/%s", serviceId), debugMessage);
+            messagingTemplate.convertAndSend(format("/channel/%s", paramId), debugMessage);
         }
     }
 }

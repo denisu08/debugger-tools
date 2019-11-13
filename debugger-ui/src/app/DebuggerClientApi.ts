@@ -13,6 +13,8 @@ export class DebuggerClientApi {
   isConnected: boolean;
   waitResponse: boolean;
 
+  breakpointReadyFlag: boolean;
+
   tm: any;
 
   readonly COMMAND_TYPE = COMMAND_TYPE;
@@ -101,6 +103,8 @@ export class DebuggerClientApi {
 
           this._sendCommand(this.appComponent.processFlowGeneratorId,
             {functionId: this.appComponent.getFunctionId(), type: this.COMMAND_TYPE.SYNC});
+
+          this.breakpointReadyFlag = true;
         })
         .catch(console.log);
     }

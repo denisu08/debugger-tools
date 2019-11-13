@@ -1,5 +1,6 @@
 package com.wirecard.tools.debugger.config;
 
+import com.wirecard.tools.debugger.common.DebuggerConstant;
 import com.wirecard.tools.debugger.common.DebuggerUtils;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -19,9 +20,9 @@ public class DebuggerChannelInterceptor implements ChannelInterceptor {
         // compile source when connect is triggered
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             MultiValueMap<String, String> multiValueMap = headers.get(StompHeaderAccessor.NATIVE_HEADERS, MultiValueMap.class);
-            if (multiValueMap.containsKey("serviceId")) {
+            if (multiValueMap.containsKey(DebuggerConstant.DEBUGGER_CHANNEL_ID)) {
                 try {
-                    DebuggerUtils.getSourceMap(multiValueMap.getFirst("serviceId"), multiValueMap.getFirst("sourcePathJar"));
+                    DebuggerUtils.getSourceMap(multiValueMap.getFirst(DebuggerConstant.DEBUGGER_CHANNEL_ID), multiValueMap.getFirst(DebuggerConstant.DEBUGGER_JAR_PATH));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

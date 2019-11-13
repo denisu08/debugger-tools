@@ -47,8 +47,8 @@ public class DebuggerUtils {
         }
     }
 
-    public static void removeSourceMap(String serviceId) {
-        GlobalVariables.sourceMap.remove(serviceId);
+    public static void removeSourceMap(String processFlowGeneratorId) {
+        GlobalVariables.sourceMap.remove(processFlowGeneratorId);
     }
 
     /*
@@ -68,14 +68,14 @@ public class DebuggerUtils {
         return ExpressionParser.evaluate(expr, f.virtualMachine(), frameGetter);
     }
 
-    public static Map<String, Map<Integer, String>> getSourceMap(final String serviceId) throws Exception {
-        return DebuggerUtils.getSourceMap(serviceId, null);
+    public static Map<String, Map<Integer, String>> getSourceMap(final String processFlowGeneratorId) throws Exception {
+        return DebuggerUtils.getSourceMap(processFlowGeneratorId, null);
     }
 
-    public static Map<String, Map<Integer, String>> getSourceMap(String serviceId, String sourceJarPath) throws Exception {
-        Map<String, Map<Integer, String>> sourceDecompilerMap = GlobalVariables.sourceMap.get(serviceId);
+    public synchronized static Map<String, Map<Integer, String>> getSourceMap(String processFlowGeneratorId, String sourceJarPath) throws Exception {
+        Map<String, Map<Integer, String>> sourceDecompilerMap = GlobalVariables.sourceMap.get(processFlowGeneratorId);
 
-        if (sourceDecompilerMap == null) {
+        if (sourceDecompilerMap == null && sourceJarPath != null) {
             sourceDecompilerMap = new HashMap<>();
             Path filejarPath = Paths.get(sourceJarPath);
             System.out.println("decompiler is starting (" + filejarPath.toString() + ")");
@@ -140,7 +140,7 @@ public class DebuggerUtils {
             long endTime = System.nanoTime();
             long durationInMillis = TimeUnit.NANOSECONDS.toMillis((endTime - startTime));  // Total execution time in nano seconds
             System.out.println(String.format("decompiler has done in %s ( " + filejarPath.toString() + ")", durationInMillis + "ms"));
-            GlobalVariables.sourceMap.put(serviceId, sourceDecompilerMap);
+            GlobalVariables.sourceMap.put(processFlowGeneratorId, sourceDecompilerMap);
         }
 
         return sourceDecompilerMap;
