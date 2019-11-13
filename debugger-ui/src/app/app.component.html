@@ -4,7 +4,7 @@
   Javascript and reload this page!</h2></noscript>
 
 <div id="main-panel" class="panel panel-default">
-  <div class="panel-heading">{{serviceId}}</div>
+  <div class="panel-heading">{{processFlowGeneratorId}}</div>
   <div class="panel-body">
     <div id="main-content" style="min-width: 100%; min-height: 100%; max-height: 100%; margin: 0;" class="container">
       <div class="row">
@@ -54,20 +54,17 @@
           <div class="col-md-6">
             <div class="form-inline">
               <label for="exampleFormControlSelect1">ProcessFlow:&nbsp;</label>
-              <select class="form-control" id="processFlowId" [value]="processFlowId">
-                <option>PCRBeneficiaryListSearchFlow</option>
-                <option>PCRBeneficiaryListDetailFlow</option>
-                <option>PCRBeneficiaryListGetAllServiceTypeFlow</option>
-                <option>PCRBeneficiaryListGetAllBranchFlow</option>
+              <select class="form-control" id="processFlowId" [value]="processFlowId"
+                      (change)="setProcessFlowId($event.currentTarget.value)">
+                <option *ngFor="let pFlow of getListProcessFlow(); let i = index">{{pFlow}}</option>
               </select>
             </div>
             <br/>
             <div class="form-inline">
               <label for="exampleFormControlSelect1">Functions:&nbsp;</label>
-              <select class="form-control" id="exampleFormControlSelect1" [value]="functionId"
-                      (change)="onChangeFunction($event)">
-                <option>startMe</option>
-                <option>searchUserByCriteria</option>
+              <select class="form-control" id="exampleFormControlSelect1" [value]="getFunctionId()"
+                      (change)="setFunctionId($event.currentTarget.value)">
+                <option *ngFor="let fId of getListFunction(); let i = index">{{fId}}</option>
               </select>
             </div>
             <hr/>

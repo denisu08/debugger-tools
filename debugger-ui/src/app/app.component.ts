@@ -23,9 +23,11 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly COMMAND_PARAM = COMMAND_PARAM;
 
   processFlowGeneratorId = 'e700abce-7d8f-405d-be6b-7ec2bd5df971';
-  processFlowId = 'PCRBeneficiaryListGetAllBranchFlow';
-  serviceId = 'HelloController';
-  functionId = 'startMe';
+  processFlowId = '';               // as subcribe channel
+  subFunctionService = '';                                      // [serviceId - functionId] as breakpoints debugger
+  subFunctionId = '';
+
+  listProcessFlowGenerator = {};
 
   constructor(private cdr: ChangeDetectorRef, public modalService: NgbModal, public httpClient: HttpClient) {
     vex.defaultOptions.className = 'vex-theme-os';
@@ -77,13 +79,38 @@ export class AppComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  getBreakpoints() {
-    return this.webSocketAPI.queryDataByKey(this.COMMAND_PARAM.BREAKPOINTS)[this.functionId];
+  getListProcessFlow() {
+    if(this.listProcessFlowGenerator) {
+      return Object.keys(this.listProcessFlowGenerator);
+    }
+    return [];
   }
 
-  onChangeFunction(event) {
-    this.functionId = event.currentTarget.value;
-    this.webSocketAPI.patchBreakpointFromService(this.webSocketAPI);
+  getListFunction() {
+    if(this.listProcessFlowGenerator && this.processFlowId in this.listProcessFlowGenerator) {
+      return Object.keys(this.listProcessFlowGenerator[this.processFlowId]);
+    }
+    return [];
+  }
+
+  getBreakpoints() {
+    return this.webSocketAPI.queryDataByKey(this.COMMAND_PARAM.BREAKPOINTS)[this.getFunctionId()];
+  }
+
+  setFunctionId(value) {
+    const funcSplit = value.split(' - ');
+    this.subFunctionService = funcSplit[0];
+    this.subFunctionId = funcSplit[1];
+    // this.webSocketAPI.patchBreakpointFromService(this.webSocketAPI);
+  }
+
+  getFunctionId() {
+    return `${this.subFunctionService} - ${this.subFunctionId}`;
+  }
+
+  setProcessFlowId(value) {
+    this.processFlowId = value;
+    this.setFunctionId(Object.keys(this.listProcessFlowGenerator[this.processFlowId])[0]);
   }
 
   getCurrentLineBreakpoint() {

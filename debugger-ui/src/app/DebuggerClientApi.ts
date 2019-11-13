@@ -52,9 +52,12 @@ export class DebuggerClientApi {
 
     const that = this;
     that.stompClient.connect(
-      {serviceId: this.appComponent.serviceId, sourcePathJar: './helloworld-springboot/build/libs/gs-spring-boot-0.1.0.jar'},
+      {
+        processFlowGeneratorId: this.appComponent.processFlowGeneratorId,
+        sourcePathJar: './testBundle/ProcessFlow_aldis_menuFlow-service-1.0.jar'
+      },
       (frame) => {
-        that.stompClient.subscribe(`/debug-channel/${that.appComponent.serviceId}`, (sdkEvent) => {
+        that.stompClient.subscribe(`/debug-channel/${that.appComponent.processFlowGeneratorId}`, (sdkEvent) => {
           const msg = sdkEvent.data;
           if (msg === '__pong__') {
             that.pong();
@@ -74,16 +77,30 @@ export class DebuggerClientApi {
   }
 
   patchBreakpointFromService(that: DebuggerClientApi) {
-    const isExist = that.appComponent.functionId in that.data[that.COMMAND_PARAM.BREAKPOINTS];
+    const isExist = that.appComponent.getFunctionId() in that.data[that.COMMAND_PARAM.BREAKPOINTS];
     if (!isExist) {
-      that.appComponent.httpClient.get(`${that.basePATH}/api/service/${that.appComponent.serviceId}/${that.appComponent.functionId}`, {
+      that.appComponent.httpClient.get(`${that.basePATH}/api/processFlowGenerator/${that.appComponent.processFlowGeneratorId}`, {
         observe: 'response'
       })
         .toPromise()
         .then(response => {
-          this.data[this.COMMAND_PARAM.BREAKPOINTS][that.appComponent.functionId] = response.body;
-          this._sendCommand(this.appComponent.serviceId,
-            {functionId: this.appComponent.functionId, type: this.COMMAND_TYPE.SYNC});
+
+          this.appComponent.listProcessFlowGenerator = response.body;
+          const processFlowGeneratorKeys = Object.keys(response.body);
+          processFlowGeneratorKeys.forEach(processFlowId => {
+            if (!this.appComponent.processFlowId) {
+              this.appComponent.processFlowId = processFlowId;
+            }
+            Object.keys(response.body[processFlowId]).forEach(functionId => {
+              if (this.appComponent.getFunctionId() === ' - ') {
+                this.appComponent.setFunctionId(functionId);
+              }
+              this.data[this.COMMAND_PARAM.BREAKPOINTS][functionId] = response.body[processFlowId][functionId];
+            });
+          });
+
+          this._sendCommand(this.appComponent.processFlowGeneratorId,
+            {functionId: this.appComponent.getFunctionId(), type: this.COMMAND_TYPE.SYNC});
         })
         .catch(console.log);
     }
@@ -148,24 +165,24 @@ export class DebuggerClientApi {
     }
     // send command to backend
     this.data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = this.DEFAULT_CURRENT_LINE_BREAKPOINT;
-    this._sendCommand(this.appComponent.serviceId,
-      {functionId: this.appComponent.functionId, type: commandType, content: btoa(JSON.stringify(payload))});
+    this._sendCommand(this.appComponent.processFlowGeneratorId,
+      {functionId: this.appComponent.getFunctionId(), type: commandType, content: btoa(JSON.stringify(payload))});
   }
 
   _waitResponse() {
 
   }
 
-  _sendCommand(serviceId: string, body: any) {
+  _sendCommand(processFlowGeneratorId: string, body: any) {
     this.stompClient.send(
-      this._getTopic(`${serviceId}`),
+      this._getTopic(`${processFlowGeneratorId}`),
       {},
       JSON.stringify(body)
     );
   }
 
   changeBreakpoint(pLine, pFlag) {
-    const newBreakpoints = [].concat(this.data[this.COMMAND_PARAM.BREAKPOINTS][this.appComponent.functionId]);
+    const newBreakpoints = [].concat(this.data[this.COMMAND_PARAM.BREAKPOINTS][this.appComponent.getFunctionId()]);
     newBreakpoints.forEach(e => {
       if (e.line === pLine) {
         e.isDebug = pFlag;
@@ -201,7 +218,7 @@ export class DebuggerClientApi {
         && this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT]
         && this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT] !== this.DEFAULT_POINTER_BREAKPOINT) {
         const params = this.data[this.COMMAND_PARAM.CURRENT_POINTER_BREAKPOINT].split('#');
-        this.appComponent.functionId = params[0];
+        this.appComponent.setFunctionId(params[0]);
         this.data[this.COMMAND_PARAM.CURRENT_LINE_BREAKPOINT] = params[1];
       }
     }
