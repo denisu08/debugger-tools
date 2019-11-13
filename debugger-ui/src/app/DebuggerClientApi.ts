@@ -101,8 +101,9 @@ export class DebuggerClientApi {
             });
           });
 
+          const payload = {[this.COMMAND_PARAM.BREAKPOINTS]: this.data[this.COMMAND_PARAM.BREAKPOINTS]};
           this._sendCommand(this.appComponent.processFlowGeneratorId,
-            {functionId: this.appComponent.getFunctionId(), type: this.COMMAND_TYPE.SYNC});
+            {functionId: this.appComponent.getFunctionId(), type: this.COMMAND_TYPE.SYNC, content: btoa(JSON.stringify(payload))});
 
           this.breakpointReadyFlag = true;
         })

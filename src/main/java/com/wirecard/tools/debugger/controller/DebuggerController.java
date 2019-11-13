@@ -3,11 +3,9 @@ package com.wirecard.tools.debugger.controller;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jdi.*;
-import com.wirecard.tools.debugger.common.DebuggerConstant;
 import com.wirecard.tools.debugger.common.DebuggerUtils;
 import com.wirecard.tools.debugger.common.GlobalVariables;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
-import com.wirecard.tools.debugger.jdiscript.example.ExampleConstant;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 import com.wirecard.tools.debugger.jdiscript.util.VMSocketAttacher;
 import com.wirecard.tools.debugger.model.DataDebug;
@@ -51,14 +49,6 @@ public class DebuggerController {
 
         try {
             DataDebug dataDebug = GlobalVariables.jdiContainer.get(processFlowGeneratorId);
-
-            if (DebugMessage.CommandType.SYNC == debugMessage.getType()) {
-                if (GlobalVariables.jdiContainer.containsKey(processFlowGeneratorId)) {
-                    messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
-                }
-                return;
-            }
-
             String plainContent = new String(Base64.getDecoder().decode(debugMessage.getContent()));
             DataDebug dataDebugFromClient = this.om.readValue(plainContent, DataDebug.class);
             boolean runCommand = true;
@@ -70,6 +60,12 @@ public class DebuggerController {
             }
 
             switch (debugMessage.getType()) {
+                case SYNC:
+                    if (GlobalVariables.jdiContainer.containsKey(processFlowGeneratorId)) {
+                        messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+                    }
+                    runCommand = false;
+                    break;
                 case CONNECT:
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).setIp(dataDebugFromClient.getIp());
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).setPort(dataDebugFromClient.getPort());
@@ -154,9 +150,13 @@ public class DebuggerController {
         if (j == null) return;
 
         Set<String> keySet = dataDebug.getBrColl().keySet();
-        for (String functionName : keySet) {
-            Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName(functionName).stream()
-                    .filter(m -> m.location().declaringType().name().startsWith(ExampleConstant.BASE_PACKAGE_FROM_JAR))
+        for (String funcKey : keySet) {
+            String[] functions = funcKey.split(" - ");
+            String currentClassName = functions[0].trim();
+            String currentMethodName = functions[1].trim();
+
+            Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName(currentMethodName).stream()
+                    .filter(m -> m.location().declaringType().name().contains(currentClassName))
                     .forEach(m -> {
                         if (GlobalVariables.jdiContainer.containsKey(processFlowGeneratorId)) {
                             try {
@@ -177,6 +177,7 @@ public class DebuggerController {
 
                                     // create breakpoints, if there are no breakpoint in globalVariables
                                     final Map selectedBreakpoint = this.filterKeyBySourceLineCode(processFlowGeneratorId, functionId, sourceLineCode);
+                                    if(selectedBreakpoint == null) continue;
                                     String filterKey = String.format("%s#%s", functionId, selectedBreakpoint.get("line"));
 
                                     ChainingBreakpointRequest chainingBreakpointRequest = dataDebug.getBreakpointEvents(processFlowGeneratorId).get(filterKey);
@@ -251,9 +252,11 @@ public class DebuggerController {
         return breakpointSelected;
     }
 
-    private Map filterKeyBySourceLineCode(String processFlowGeneratorId, String functionId, String sourceLineCode) {
-        List<Map> brCollections = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrColl(functionId);
+    private Map filterKeyBySourceLineCode(String processFlowGeneratorId, String fParam, String sourceLineCode) {
+        List<Map> brCollections = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrColl(fParam);
         Map breakpointSelected = null;
+        String[] functions = fParam.split(" - ");
+        String functionId = functions[1].trim();
         for (Map map : brCollections) {
             if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get("name"))) >= 0) {
                 breakpointSelected = map;
