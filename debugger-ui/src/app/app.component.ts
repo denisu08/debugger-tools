@@ -22,8 +22,9 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly COMMAND_TYPE = COMMAND_TYPE;
   readonly COMMAND_PARAM = COMMAND_PARAM;
 
-  serviceId = 'HelloController';
+  processFlowGeneratorId = 'e700abce-7d8f-405d-be6b-7ec2bd5df971';
   processFlowId = 'PCRBeneficiaryListGetAllBranchFlow';
+  serviceId = 'HelloController';
   functionId = 'startMe';
 
   constructor(private cdr: ChangeDetectorRef, public modalService: NgbModal, public httpClient: HttpClient) {

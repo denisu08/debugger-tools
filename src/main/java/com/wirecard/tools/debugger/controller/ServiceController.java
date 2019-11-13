@@ -2,7 +2,6 @@ package com.wirecard.tools.debugger.controller;
 
 import com.google.gson.Gson;
 import org.json.simple.JSONArray;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
