@@ -1,0 +1,122 @@
+PCCBeneficiaryListService
+getUserGroupDroplistByCorpIdAndChannelTenantAndExcludeMenuCode
+LoopUserGroupMenuBene
+
+
+
+
+1. Class Empty, do nothing, only flag
+
+cbb02 - BO_PACKAGE_CHANNEL_TENANT
+
+
+
+
+http://10.10.230.203:9999/api/1.0/ProcessFlow_aldis_menuFlow/process/BODomesticBankSearchFlow~1.-1/MENU_DOMESTIC_BANK~1.-1/4a0df82e-c808-409d-a57b-a838ff9c1713
+
+
+pattern: processFlowGenerator > processFlowId > [services + method] > [stages]
+
+example:
+A) aldis_menuFlow > BODomesticBankSearchFlow > [bodomesticbankservice - searchDomesticBank] >
+	1	callAppendWildcardToSearchCriteriaForCode	Call Function
+	2	callAppendWildcardToSearchCriteriaForName	Call Function
+	3	loggerAfterAppend							Logger
+	4	GetCurrentPage								Operation
+	5	GetDomesticBankList							Get
+	6	Log											Logger
+	7	GetDomesticBankAllList						Get
+	8	getTotalRecord								Operation
+	9	pagehelperserviceCalculateTotalPage			Call Service
+	10	pagehelperserviceConvertToDataTable			Call Service
+B) aldis_menuFlow > BODomesticBankEditFlow > [
+	bopendingtaskservice - getUserBranchAndDivisionCodeAndType,
+	1	GetBranchAndDivisionCodeAndType				Call Function
+
+	bodomesticbankservice - getDetailDomesticBank,
+	1	GetDOMESTICBANK								Get
+	2	GetFromCollection							Collection
+	3	CreateMapTenant								Collection
+	4	CreateMapCountry							Collection
+	5	CreateMapState								Collection
+	6	CreateMapCity								Collection
+	7	bocachedataserviceGetTimezoneByUserId		Call Service
+	8	ConvertCreatedDate							Operation
+	9	ConvertUpdatedDate							Operation
+	10	PutToDomesticBankDetail						Collection
+
+	bopendingtaskservice - getMenuNameByMenuCode,
+	1	getMenuNameByCode							Collection
+
+	bousermanagementservice - getUserChannelTenantByChannelAndTenantList] >
+	1	checkTenantIsNull							Condition
+	2		LogIfTenantListNull						Logger
+	3		getChannelTenantByChannel				Collection
+	4	end condition								End Condition
+	5	elseIfChannelIsNull							Condition
+	6		LogIfChannelNull						Logger
+	7		loopChannelTenantList					Looping
+	8			setToLocal							Set Value
+	9			tenantContains						Condition
+	10				addChannelTenantIdToReturn		Collection
+	11			end condition						End Condition
+	12		end looping								End Looping
+	13	end condition								End Condition
+	14	elseIfBothNotEmpty							Condition
+	15		LogIfBothNotEmpty						Logger
+	16		loopTenantCodeList						Looping
+	17			setTennatMap						Collection
+	18		end looping								End Looping
+	19		loopChanneltenantListSession			Looping
+	20			checkChannel						Condition
+	21				getTenantCode					Collection
+	22				checkIfTenantisNull				Condition
+	23					setChannelTenantIdToList	Collection
+	24				end condition					End Condition
+	25			end condition						End Condition
+	26		end looping								End Looping
+	27	end condition								End Condition
+	28	else										Condition
+	29		LogIfBothEmpty							Logger
+	30		setToReturnList							Set Value
+	31	end condition								End Condition
+
+C) aldis_menuFlow > BODomesticBankAddFlow > [
+	bopendingtaskservice - getUserBranchAndDivisionCodeAndType,
+	1	GetBranchAndDivisionCodeAndType					Call Function
+
+	bopendingtaskservice - getMenuNameByMenuCode,
+	1	getMenuNameByCode								Collection
+
+	bousermanagementservice - getUserChannelTenantByChannelAndTenantList] >
+	1	checkTenantIsNull							Condition
+	2		LogIfTenantListNull						Logger
+	3		getChannelTenantByChannel				Collection
+	4	end condition								End Condition
+	5	elseIfChannelIsNull							Condition
+	6		LogIfChannelNull						Logger
+	7		loopChannelTenantList					Looping
+	8			setToLocal							Set Value
+	9			tenantContains						Condition
+	10				addChannelTenantIdToReturn		Collection
+	11			end condition						End Condition
+	12		end looping								End Looping
+	13	end condition								End Condition
+	14	elseIfBothNotEmpty							Condition
+	15		LogIfBothNotEmpty						Logger
+	16		loopTenantCodeList						Looping
+	17			setTennatMap						Collection
+	18		end looping								End Looping
+	19		loopChanneltenantListSession			Looping
+	20			checkChannel						Condition
+	21				getTenantCode					Collection
+	22				checkIfTenantisNull				Condition
+	23					setChannelTenantIdToList	Collection
+	24				end condition					End Condition
+	25			end condition						End Condition
+	26		end looping								End Looping
+	27	end condition								End Condition
+	28	else										Condition
+	29		LogIfBothEmpty							Logger
+	30		setToReturnList							Set Value
+	31	end condition								End Condition
