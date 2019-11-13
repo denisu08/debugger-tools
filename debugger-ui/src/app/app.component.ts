@@ -24,7 +24,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   processFlowGeneratorId = 'e700abce-7d8f-405d-be6b-7ec2bd5df971';
   processFlowId = '';               // as subcribe channel
-  subFunctionService = '';                                      // [serviceId - functionId] as breakpoints debugger
+  subFunctionService = '';          // [serviceId - functionId] as breakpoints debugger
   subFunctionId = '';
 
   listProcessFlowGenerator = {};
@@ -101,7 +101,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const funcSplit = value.split(' - ');
     this.subFunctionService = funcSplit[0];
     this.subFunctionId = funcSplit[1];
-    // this.webSocketAPI.patchBreakpointFromService(this.webSocketAPI);
+    this.webSocketAPI.patchBreakpointFromService(this.webSocketAPI);
   }
 
   getFunctionId() {
