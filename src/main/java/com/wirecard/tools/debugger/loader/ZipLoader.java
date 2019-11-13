@@ -1,19 +1,23 @@
 package com.wirecard.tools.debugger.loader;
 
+import com.wirecard.tools.debugger.common.DebuggerConstant;
 import org.jd.core.v1.api.loader.Loader;
 import org.jd.core.v1.api.loader.LoaderException;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class ZipLoader implements Loader {
-    protected HashMap<String, byte[]> map = new HashMap<>();
+    protected ConcurrentHashMap<String, byte[]> map = new ConcurrentHashMap();
 
-    public  ZipLoader(InputStream is) throws LoaderException {
+    public ZipLoader(InputStream is) throws LoaderException {
+        this.loadLibs(is);
+    }
+
+    private void loadLibs(InputStream is) {
         byte[] buffer = new byte[1024 * 2];
 
         try (ZipInputStream zis = new ZipInputStream(is)) {
@@ -29,19 +33,27 @@ public class ZipLoader implements Loader {
                         read = zis.read(buffer);
                     }
 
-                    map.put(ze.getName(), out.toByteArray());
+                    if (ze.getName().endsWith(".jar")) {
+                        this.loadLibs(new ByteArrayInputStream(out.toByteArray()));
+                    } else {
+                        if(ze.getName().contains(DebuggerConstant.FILTER_CLASS_DECOMPILE)) {
+                            map.put(ze.getName(), out.toByteArray());
+                        }
+                    }
                 }
 
                 ze = zis.getNextEntry();
             }
 
             zis.closeEntry();
-        } catch (IOException e) {
-            throw new LoaderException(e);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    public HashMap<String, byte[]> getMap() { return map; }
+    public ConcurrentHashMap<String, byte[]> getMap() {
+        return map;
+    }
 
     @Override
     public byte[] load(String internalName) throws LoaderException {
