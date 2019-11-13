@@ -164,7 +164,6 @@ public class DebuggerController {
 
                                 // filter based on source code & stageList
                                 Map<String, Map<Integer, String>> sourceMap = DebuggerUtils.getSourceMap(processFlowGeneratorId);
-                                // System.out.println("decompile:: " + sourceMap);
                                 String sourceLineCode = "";
                                 for (Location loc : locationList) {
                                     // check, if source code is exist
@@ -183,7 +182,7 @@ public class DebuggerController {
                                     ChainingBreakpointRequest chainingBreakpointRequest = dataDebug.getBreakpointEvents(processFlowGeneratorId).get(filterKey);
                                     if (chainingBreakpointRequest == null) {
                                         chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
-                                            System.out.println("be: " + be);
+                                            logger.info("be: " + be);
                                             try {
                                                 // start - grab system variables
                                                 // get field current class

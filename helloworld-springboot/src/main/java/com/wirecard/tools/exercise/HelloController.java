@@ -22,30 +22,30 @@ public class HelloController {
         String dummy = "WowKeren";
         HelloWorld hello = new HelloWorld();
         DebuggerUtils.addDebuggerFlag("startMe#sayHello");
-        System.out.println(hello.sayHello());
-        System.out.println(hello.sayHello());
+        logger.info(hello.sayHello());
+        logger.info(hello.sayHello());
         DebuggerUtils.addDebuggerFlag("startMe#updateVar");
         hello.setHelloTo("Barney");
-        System.out.println(hello.sayHello());
-        System.out.println(hello.sayHello());
+        logger.info(hello.sayHello());
+        logger.info(hello.sayHello());
         DebuggerUtils.addDebuggerFlag("startMe#newInstance");
         hello = new HelloWorld("Fred", "Wilma");
-        System.out.println(hello.sayHello());
-        System.out.println(hello.sayHello());
+        logger.info(hello.sayHello());
+        logger.info(hello.sayHello());
         return "startMe";
     }
 
     @RequestMapping({"/searchUserByCriteria"})
     public String searchUserByCriteria() {
         DebuggerUtils.addDebuggerFlag("searchUserByCriteria#setValueUserId");
-        System.out.println("run:: searchUserByCriteria: setValueUserId");
+        logger.info("run:: searchUserByCriteria: setValueUserId");
         DebuggerUtils.addDebuggerFlag("searchUserByCriteria#setValueUserName");
-        System.out.println("run:: searchUserByCriteria: setValueUserName1");
-        System.out.println("run:: searchUserByCriteria: setValueUserName2");
-        System.out.println("run:: searchUserByCriteria: setValueUserName3");
+        logger.info("run:: searchUserByCriteria: setValueUserName1");
+        logger.info("run:: searchUserByCriteria: setValueUserName2");
+        logger.info("run:: searchUserByCriteria: setValueUserName3");
         DebuggerUtils.addDebuggerFlag("searchUserByCriteria#getPCCUser");
-        System.out.println("run:: searchUserByCriteria: getPCCUser1");
-        System.out.println("run:: searchUserByCriteria: getPCCUser2");
+        logger.info("run:: searchUserByCriteria: getPCCUser1");
+        logger.info("run:: searchUserByCriteria: getPCCUser2");
         return "searchUserByCriteria";
     }
 

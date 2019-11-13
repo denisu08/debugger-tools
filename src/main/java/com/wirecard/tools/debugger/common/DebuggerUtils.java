@@ -3,11 +3,16 @@ package com.wirecard.tools.debugger.common;
 import com.sun.jdi.*;
 import com.sun.tools.example.debug.expr.ExpressionParser;
 import com.wirecard.tools.debugger.loader.ZipLoader;
-import org.jd.core.v1.model.message.Message;
 import com.wirecard.tools.debugger.printer.PlainTextPrinter;
+import org.jd.core.v1.model.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.validation.constraints.NotNull;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -17,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class DebuggerUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(DebuggerUtils.class);
 
     private static class CounterPrinter extends PlainTextPrinter {
         public long classCounter = 0;
@@ -78,7 +85,7 @@ public class DebuggerUtils {
         if (sourceDecompilerMap == null && sourceJarPath != null) {
             sourceDecompilerMap = new HashMap<>();
             Path filejarPath = Paths.get(sourceJarPath);
-            System.out.println("decompiler is starting (" + filejarPath.toString() + ")");
+            logger.info("decompiler is starting (" + filejarPath.toString() + ")");
             long startTime = System.nanoTime();
             FileInputStream inputStream = new FileInputStream(filejarPath.toFile());
 
@@ -139,7 +146,7 @@ public class DebuggerUtils {
             }
             long endTime = System.nanoTime();
             long durationInMillis = TimeUnit.NANOSECONDS.toMillis((endTime - startTime));  // Total execution time in nano seconds
-            System.out.println(String.format("decompiler has done in %s ( " + filejarPath.toString() + ")", durationInMillis + "ms"));
+            logger.info(String.format("decompiler has done in %s ( " + filejarPath.toString() + ")", durationInMillis + "ms"));
             GlobalVariables.sourceMap.put(processFlowGeneratorId, sourceDecompilerMap);
         }
 
