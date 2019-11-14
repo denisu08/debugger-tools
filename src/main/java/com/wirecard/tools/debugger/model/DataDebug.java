@@ -166,6 +166,8 @@ public class DataDebug {
 
     public void disconnect() {
         this.connect = false;
+        this.clb = 0;
+        this.cpb = "xx";
         try {
             if (this.jdiScript != null || this.jdiScript.vm().process().isAlive()) getJdiScript().vm().dispose();
         } catch (Exception ex) {}

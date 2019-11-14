@@ -72,8 +72,6 @@ public class DebuggerController {
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).setIp(dataDebugFromClient.getIp());
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).setPort(dataDebugFromClient.getPort());
 
-                    // TODO: checking (ip + port + processFlowGeneratorId) for connect to runtime server
-
                     if (GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript() == null) {
                         VirtualMachine vm = new VMSocketAttacher(GlobalVariables.jdiContainer.get(processFlowGeneratorId).getIp(), GlobalVariables.jdiContainer.get(processFlowGeneratorId).getPort()).attach();
                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).setJdiScript(new JDIScript(vm));
@@ -98,13 +96,7 @@ public class DebuggerController {
                     ChainingBreakpointRequest breakpointRequest = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(debugMessage.getFunctionId()).get(nextFilterKey);
                     if (breakpointRequest != null) {
                         breakpointRequest.setEnabled(true);
-                        logger.info("before next resume");
                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript().vm().resume();
-                        logger.info("after next resume");
-
-                        /*final Map selectedBreakpoint = this.getBreakpointByFilterkey(processFlowGeneratorId, nextFilterKey);
-                        boolean isBreakpointEnabled = (Boolean) selectedBreakpoint.getOrDefault("isDebug", false) && !GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute();
-                        breakpointRequest.setEnabled(isBreakpointEnabled);*/
                     } else {
                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript().vm().resume();
                     }
@@ -150,7 +142,7 @@ public class DebuggerController {
                 // no remove data & source code
                 // GlobalVariables.jdiContainer.remove(processFlowGeneratorId);
                 // DebuggerUtils.removeSourceMap(processFlowGeneratorId);
-                messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), om.writeValueAsString(new DataDebug()));
+                messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
             } catch (Exception e) {
                 e.printStackTrace();
                 messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), "error#" + e.getMessage());
