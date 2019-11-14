@@ -8,6 +8,7 @@ export const COMMAND_TYPE = Object.freeze({
   SET_BREAKPOINT: 'SET_BREAKPOINT',
   ADD_VARIABLE: 'ADD_VARIABLE',
   REMOVE_VARIABLE: 'REMOVE_VARIABLE',
+  SET_VARIABLE: 'SET_VARIABLE',
 });
 
 export const COMMAND_PARAM = Object.freeze({

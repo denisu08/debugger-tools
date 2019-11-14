@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +22,7 @@ public class DataDebug {
     private Map<String, Map<String, ChainingBreakpointRequest>> breakpointEvents;
 
     private Map sysVar;
-    private Map custVar;
+    private Map<String, String> custVar;
 
     @JsonIgnore
     private JDIScript jdiScript;
@@ -139,11 +138,11 @@ public class DataDebug {
         this.sysVar = sysVar;
     }
 
-    public Map getCustVar() {
+    public Map<String, String> getCustVar() {
         return custVar;
     }
 
-    public void setCustVar(Map custVar) {
+    public void setCustVar(Map<String, String> custVar) {
         this.custVar = custVar;
     }
 
@@ -165,8 +164,8 @@ public class DataDebug {
         }
     }
 
-    public void clearAndDisconnect() {
-        this.clear();
+    public void disconnect() {
+        this.connect = false;
         try {
             if (this.jdiScript != null || this.jdiScript.vm().process().isAlive()) getJdiScript().vm().dispose();
         } catch (Exception ex) {}

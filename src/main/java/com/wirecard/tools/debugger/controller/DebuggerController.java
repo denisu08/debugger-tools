@@ -3,11 +3,13 @@ package com.wirecard.tools.debugger.controller;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jdi.*;
+import com.sun.jdi.event.BreakpointEvent;
 import com.wirecard.tools.debugger.common.DebuggerUtils;
 import com.wirecard.tools.debugger.common.GlobalVariables;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 import com.wirecard.tools.debugger.jdiscript.util.VMSocketAttacher;
+import com.wirecard.tools.debugger.model.CurrentState;
 import com.wirecard.tools.debugger.model.DataDebug;
 import com.wirecard.tools.debugger.model.DebugMessage;
 import org.slf4j.Logger;
@@ -96,17 +98,28 @@ public class DebuggerController {
                     ChainingBreakpointRequest breakpointRequest = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(debugMessage.getFunctionId()).get(nextFilterKey);
                     if (breakpointRequest != null) {
                         breakpointRequest.setEnabled(true);
+                        logger.info("before next resume");
                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript().vm().resume();
+                        logger.info("after next resume");
 
-                        final Map selectedBreakpoint = this.getBreakpointByFilterkey(processFlowGeneratorId, nextFilterKey);
+                        /*final Map selectedBreakpoint = this.getBreakpointByFilterkey(processFlowGeneratorId, nextFilterKey);
                         boolean isBreakpointEnabled = (Boolean) selectedBreakpoint.getOrDefault("isDebug", false) && !GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute();
-                        breakpointRequest.setEnabled(isBreakpointEnabled);
+                        breakpointRequest.setEnabled(isBreakpointEnabled);*/
                     } else {
                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript().vm().resume();
                     }
+                    runCommand = false;
                     break;
                 case RESUME:
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript().vm().resume();
+                    break;
+                case SET_VARIABLE:
+                    GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCustVar(dataDebugFromClient.getCustVar());
+                    if(!"xx".equals(GlobalVariables.jdiContainer.get(processFlowGeneratorId).getCpb())) {
+                        this.queryCustomVariables(processFlowGeneratorId, GlobalVariables.currentState.get(processFlowGeneratorId).getCurrentEvent());
+                        messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+                        runCommand = false;
+                    }
                     break;
                 case SET_BREAKPOINT:
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).putBrColl(debugMessage.getFunctionId(), dataDebugFromClient.getCurrentBrColl());
@@ -133,9 +146,10 @@ public class DebuggerController {
     private void detachConnection(final String processFlowGeneratorId) {
         if (GlobalVariables.jdiContainer.containsKey(processFlowGeneratorId)) {
             try {
-                GlobalVariables.jdiContainer.get(processFlowGeneratorId).clearAndDisconnect();
-                GlobalVariables.jdiContainer.remove(processFlowGeneratorId);
-                DebuggerUtils.removeSourceMap(processFlowGeneratorId);
+                GlobalVariables.jdiContainer.get(processFlowGeneratorId).disconnect();
+                // no remove data & source code
+                // GlobalVariables.jdiContainer.remove(processFlowGeneratorId);
+                // DebuggerUtils.removeSourceMap(processFlowGeneratorId);
                 messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), om.writeValueAsString(new DataDebug()));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -177,7 +191,7 @@ public class DebuggerController {
 
                                     // create breakpoints, if there are no breakpoint in globalVariables
                                     final Map selectedBreakpoint = this.filterKeyBySourceLineCode(processFlowGeneratorId, functionId, sourceLineCode);
-                                    if(selectedBreakpoint == null) continue;
+                                    if (selectedBreakpoint == null) continue;
                                     String filterKey = String.format("%s#%s", functionId, selectedBreakpoint.get("line"));
 
                                     ChainingBreakpointRequest chainingBreakpointRequest = dataDebug.getBreakpointEvents(processFlowGeneratorId).get(filterKey);
@@ -208,14 +222,19 @@ public class DebuggerController {
                                                 GlobalVariables.jdiContainer.get(processFlowGeneratorId).setSysVar(sysVar);
                                                 // end - grab system variables
 
-                                                Map customVar = new HashMap<>();
-                                                Value val = DebuggerUtils.evaluate(be.thread().frame(0), "\"testKeren\".length()");
-                                                customVar.put("\"testKeren\".length()", DebuggerUtils.getJavaValue(val, be.thread()));
-                                                GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCustVar(customVar);
-
+                                                // query custom variables
+                                                this.queryCustomVariables(processFlowGeneratorId, be);
                                                 GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCpb(filterKey);
                                                 messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+
+                                                // stop, to the next breakpoint
                                                 j.vm().suspend();
+
+                                                // rollback enable flag in breakpoint request to original flag
+                                                boolean isBreakpointEnabled = (Boolean) selectedBreakpoint.getOrDefault("isDebug", false) && !GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute();
+                                                GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled(isBreakpointEnabled);
+
+                                                GlobalVariables.currentState.put(processFlowGeneratorId, new CurrentState(loc, be));
                                             } catch (Exception ex) {
                                                 ex.printStackTrace();
                                                 messagingTemplate.convertAndSend(format("/debug-channel/%s", processFlowGeneratorId), "error#" + ex.getMessage());
@@ -224,6 +243,7 @@ public class DebuggerController {
                                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).addBreakpointEvents(functionId, filterKey, chainingBreakpointRequest);
                                     }
 
+                                    // set enable flag for breakpoint request
                                     boolean isBreakpointEnabled = (Boolean) selectedBreakpoint.getOrDefault("isDebug", false) && !GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute();
                                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled(isBreakpointEnabled);
                                 }
@@ -237,6 +257,20 @@ public class DebuggerController {
             j.vm().allClasses().forEach(c -> setConstructBrks.accept(c));
             j.onClassPrep(cp -> setConstructBrks.accept(cp.referenceType()));
         }
+    }
+
+    private void queryCustomVariables(final String processFlowGeneratorId, BreakpointEvent be) {
+        // example: "testKeren".length()
+        Map<String, String> customVariables = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getCustVar();
+        for (String key : customVariables.keySet()) {
+            try {
+                Value val = DebuggerUtils.evaluate(be.thread().frame(0), key);
+                customVariables.put(key, String.valueOf(DebuggerUtils.getJavaValue(val, be.thread())));
+            } catch (Exception ex) {
+                customVariables.put(key, "*error: " + ex.getMessage());
+            }
+        }
+        GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCustVar(customVariables);
     }
 
     private Map getBreakpointByFilterkey(String processFlowGeneratorId, String filterKey) {

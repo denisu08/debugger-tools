@@ -76,7 +76,8 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   isShowVariable() {
-    return this.isFlag(COMMAND_PARAM.IS_CONNECT);
+    // return this.isFlag(COMMAND_PARAM.IS_CONNECT);
+    return this.isConnected();
   }
 
   _forceDraw() {

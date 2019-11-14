@@ -161,9 +161,13 @@ export class DebuggerClientApi {
         break;
       case this.COMMAND_TYPE.ADD_VARIABLE:
         this.addVariable(pData);
+        commandType = this.COMMAND_TYPE.SET_VARIABLE;
+        payload[this.COMMAND_PARAM.GET_CUSTOM_VARIABLES] = this.data[this.COMMAND_PARAM.GET_CUSTOM_VARIABLES];
         break;
       case this.COMMAND_TYPE.REMOVE_VARIABLE:
         this.removeVariable(pData);
+        commandType = this.COMMAND_TYPE.SET_VARIABLE;
+        payload[this.COMMAND_PARAM.GET_CUSTOM_VARIABLES] = this.data[this.COMMAND_PARAM.GET_CUSTOM_VARIABLES];
         break;
       default:
         break;
