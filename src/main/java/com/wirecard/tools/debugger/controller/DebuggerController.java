@@ -152,11 +152,10 @@ public class DebuggerController {
     }
 
     private void collectBreakpointEvents(final String processFlowGeneratorId, final String functionId) {
-        DataDebug dataDebug = GlobalVariables.jdiContainer.get(processFlowGeneratorId);
-        JDIScript j = dataDebug.getJdiScript();
+        JDIScript j = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript();
         if (j == null) return;
 
-        Set<String> keySet = dataDebug.getBrColl().keySet();
+        Set<String> keySet = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrColl().keySet();
         for (String funcKey : keySet) {
             String[] functions = funcKey.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
             String currentClassName = functions[0].trim();
