@@ -163,7 +163,8 @@ public class DebuggerController {
             String currentMethodName = functions[1].trim();
 
             Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName(currentMethodName).stream()
-                    .filter(m -> m.location().declaringType().name().contains(currentClassName))
+                    .filter(m -> m.location() != null && m.location().declaringType() != null
+                            && m.location().declaringType().name() != null && m.location().declaringType().name().contains(currentClassName))
                     .forEach(m -> {
                         if (GlobalVariables.jdiContainer.containsKey(processFlowGeneratorId)) {
                             try {
@@ -188,7 +189,7 @@ public class DebuggerController {
                                     if (selectedBreakpoint == null) continue;
                                     String filterKey = String.format(DebuggerConstant.DEBUGGER_FORMAT_CODE, functionId, selectedBreakpoint.get(DebuggerConstant.KEY_DEBUG_LINE));
 
-                                    ChainingBreakpointRequest chainingBreakpointRequest = dataDebug.getBreakpointEvents(processFlowGeneratorId).get(filterKey);
+                                    ChainingBreakpointRequest chainingBreakpointRequest = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey);
                                     if (chainingBreakpointRequest == null) {
                                         chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
                                             logger.info("be: " + be);
@@ -196,11 +197,11 @@ public class DebuggerController {
                                                 // start - grab system variables
                                                 // get field current class
                                                 List<Field> childFields = m.location().declaringType().allFields();
-                                                StackFrame stackFrame = be.thread().frame(0);
+                                                // StackFrame stackFrame = be.thread().frame(0);
                                                 Map sysVar = new HashMap<>();
                                                 for (Field childField : childFields) {
                                                     if (!childField.isStatic()) {
-                                                        Value val = stackFrame.thisObject().getValue(childField);
+                                                        Value val = be.thread().frame(0).thisObject().getValue(childField);
                                                         sysVar.put(childField.name(), DebuggerUtils.getJavaValue(val, be.thread()));
                                                     }
                                                 }
@@ -208,8 +209,8 @@ public class DebuggerController {
                                                 // get field local variable
                                                 List<LocalVariable> localVariables = loc.method().variables();
                                                 for (LocalVariable variable : localVariables) {
-                                                    if (variable.isVisible(stackFrame)) {
-                                                        Value val = stackFrame.getValue(variable);
+                                                    if (variable.isVisible(be.thread().frame(0))) {
+                                                        Value val = be.thread().frame(0).getValue(variable);
                                                         sysVar.put(variable.name(), DebuggerUtils.getJavaValue(val, be.thread()));
                                                     }
                                                 }
@@ -238,9 +239,14 @@ public class DebuggerController {
                                     }
 
                                     // set enable flag for breakpoint request
-                                    boolean isBreakpointEnabled = (Boolean) selectedBreakpoint.getOrDefault(DebuggerConstant.KEY_DEBUG_FLAG, false) && !GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute();
-                                    GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled(isBreakpointEnabled);
+                                    if(GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute()) {
+                                        GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled(false);
+                                    } else {
+                                        GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled((Boolean) selectedBreakpoint.getOrDefault(DebuggerConstant.KEY_DEBUG_FLAG, false));
+                                    }
                                 }
+                            } catch (AbsentInformationException aix) {
+                                logger.error("*error: " + m.location(), aix);
                             } catch (Exception ex) {
                                 ex.printStackTrace();
                                 messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.ERROR_PREFIX + ex.getMessage());
@@ -248,8 +254,18 @@ public class DebuggerController {
                         }
                     });
 
-            j.vm().allClasses().forEach(c -> setConstructBrks.accept(c));
-            j.onClassPrep(cp -> setConstructBrks.accept(cp.referenceType()));
+            Set<String> listClasses = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrClasses();
+            Set<String> classUnique = new HashSet<>();
+            j.vm().allClasses().forEach(c -> {
+                if (!c.name().contains("$$") && listClasses.stream().anyMatch(entry -> c.name().toLowerCase().contains(entry.toLowerCase())) && classUnique.add(c.name())) {
+                    setConstructBrks.accept(c);
+                }
+            });
+            j.onClassPrep(cp -> {
+                if (!cp.referenceType().name().contains("$$") && listClasses.stream().anyMatch(entry -> cp.referenceType().name().toLowerCase().contains(entry.toLowerCase())) && classUnique.add(cp.referenceType().name())) {
+                    setConstructBrks.accept(cp.referenceType());
+                }
+            });
         }
     }
 

@@ -1,12 +1,11 @@
 package com.wirecard.tools.debugger.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.wirecard.tools.debugger.common.DebuggerConstant;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class DataDebug {
 
@@ -51,6 +50,16 @@ public class DataDebug {
 
     public Map<String, List<Map>> getBrColl() {
         return brColl;
+    }
+
+    public Set<String> getBrClasses() {
+        Set<String> result = new HashSet<>();
+        if(this.brColl != null) {
+            for(String key : this.brColl.keySet()) {
+                result.add(key.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM)[0].trim());
+            }
+        }
+        return result;
     }
 
     public void setBrColl(Map<String, List<Map>> brColl) {

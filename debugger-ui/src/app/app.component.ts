@@ -36,8 +36,8 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.webSocketAPI = new DebuggerClientApi(this);
     this.webSocketAPI._connect();
-    this.ipValue = '127.0.0.1';
-    this.portValue = '7777';
+    this.ipValue = '10.10.230.203';
+    this.portValue = '8822';
   }
 
   ngOnDestroy() {
