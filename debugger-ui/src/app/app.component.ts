@@ -22,7 +22,8 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly COMMAND_TYPE = COMMAND_TYPE;
   readonly COMMAND_PARAM = COMMAND_PARAM;
 
-  processFlowGeneratorId = 'e700abce-7d8f-405d-be6b-7ec2bd5df971';
+  // processFlowGeneratorId = 'e700abce-7d8f-405d-be6b-7ec2bd5df971';
+  processFlowGeneratorId = '217d7bed-fa06-43b2-85cd-eefed37e540e';
   processFlowId = '';               // as subcribe channel
   subFunctionService = '';          // [serviceId - functionId] as breakpoints debugger
   subFunctionId = '';
