@@ -6,6 +6,7 @@ import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class DataDebug {
 
@@ -15,13 +16,14 @@ public class DataDebug {
     private boolean mute;
     private int clb;
     private String cpb;
-
-    private Map<String, List<Map>> brColl;
-    private List<Map> currentBrColl; // UI always ignore this properties, only for server sync
-    private Map<String, Map<String, ChainingBreakpointRequest>> breakpointEvents;
-
     private Map sysVar;
     private Map<String, String> custVar;
+
+    private List<Map> currentBrColl; // UI always ignore this properties, only for server sync
+    private Map<String, List<Map>> brColl;
+
+    @JsonIgnore
+    private Map<String, Map<String, ChainingBreakpointRequest>> breakpointEvents;
 
     @JsonIgnore
     private JDIScript jdiScript;
@@ -48,14 +50,15 @@ public class DataDebug {
         this.currentBrColl = currentBrColl;
     }
 
+    @JsonIgnore
     public Map<String, List<Map>> getBrColl() {
         return brColl;
     }
 
     public Set<String> getBrClasses() {
         Set<String> result = new HashSet<>();
-        if(this.brColl != null) {
-            for(String key : this.brColl.keySet()) {
+        if (this.brColl != null) {
+            for (String key : this.brColl.keySet()) {
                 result.add(key.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM)[0].trim());
             }
         }
@@ -179,7 +182,8 @@ public class DataDebug {
         this.cpb = "xx";
         try {
             if (this.jdiScript != null || this.jdiScript.vm().process().isAlive()) getJdiScript().vm().dispose();
-        } catch (Exception ex) {}
+        } catch (Exception ex) {
+        }
         // this.getJdiScript().vm().resume();
         this.jdiScript = null;
     }

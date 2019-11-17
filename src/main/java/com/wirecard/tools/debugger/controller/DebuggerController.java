@@ -228,6 +228,7 @@ public class DebuggerController {
                                                 boolean isBreakpointEnabled = (Boolean) selectedBreakpoint.getOrDefault(DebuggerConstant.KEY_DEBUG_FLAG, false) && !GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute();
                                                 GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled(isBreakpointEnabled);
 
+                                                // set current thread
                                                 GlobalVariables.currentState.put(processFlowGeneratorId, new CurrentState(loc, be));
                                             } catch (Exception ex) {
                                                 ex.printStackTrace();
@@ -238,7 +239,7 @@ public class DebuggerController {
                                     }
 
                                     // set enable flag for breakpoint request
-                                    if(GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute()) {
+                                    if (GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute()) {
                                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled(false);
                                     } else {
                                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled((Boolean) selectedBreakpoint.getOrDefault(DebuggerConstant.KEY_DEBUG_FLAG, false));

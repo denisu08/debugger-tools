@@ -11,6 +11,7 @@ public class DebuggerConstant {
     public static final String ERROR_PREFIX = "error#";
 
     public static final String KEY_DEBUG_FLAG = "isDebug";
+    public static final String KEY_SYNC_FLAG = "isSync";
     public static final String KEY_DEBUG_NAME = "name";
     public static final String KEY_DEBUG_LINE = "line";
     public static final String KEY_DEBUG_STAGE = "stage";
