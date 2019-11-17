@@ -14,6 +14,15 @@ repositories {
     jcenter()
 }
 
+jar {
+    manifest {
+        attributes "Main-Class": "com.wirecard.tools.debugger.Application"
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
 dependencies {
     compile("org.springframework.boot:spring-boot-starter-websocket")
     compile("org.webjars:webjars-locator-core")
