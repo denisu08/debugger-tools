@@ -129,7 +129,7 @@ public class DebuggerUtils {
 
                         // Recompile source
                         String source = printer.toString();
-                        String newKeyPath = path.replaceAll("/", "\\\\").substring(0, path.lastIndexOf("class")) + "java";
+                        String newKeyPath = path.replaceAll("\\\\", "/").substring(0, path.lastIndexOf("class")) + "java";
                         int indexBootInf = newKeyPath.indexOf(DebuggerConstant.KEY_BOOT_INF);
                         if (indexBootInf == 0)
                             newKeyPath = newKeyPath.substring(DebuggerConstant.KEY_BOOT_INF.length());

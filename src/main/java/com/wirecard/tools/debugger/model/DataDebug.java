@@ -51,7 +51,6 @@ public class DataDebug {
         this.currentBrColl = currentBrColl;
     }
 
-    @JsonIgnore
     public Map<String, List<Map>> getBrColl() {
         return brColl;
     }

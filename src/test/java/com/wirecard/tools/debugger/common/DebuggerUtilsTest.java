@@ -7,7 +7,7 @@ import java.util.Map;
 public class DebuggerUtilsTest {
     @Test
     public void testDecompile() throws Exception {
-        Map<String, Map<Integer, String>> sourceMap = DebuggerUtils.getSourceMap("12345", "testBundle/ProcessFlow_PCCCUUserManagement-service-1.0.jar");
-        System.out.println("sourceMap: " + sourceMap);
+        /*Map<String, Map<Integer, String>> sourceMap = DebuggerUtils.getSourceMap("12345", "testBundle/ProcessFlow_aldis_menuFlow-service-1.0.jar");
+        System.out.println("sourceMap: " + sourceMap);*/
     }
 }

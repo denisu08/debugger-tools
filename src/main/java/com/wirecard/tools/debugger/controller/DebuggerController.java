@@ -118,6 +118,7 @@ public class DebuggerController {
                     }
                     break;
                 case SET_BREAKPOINT: // breakpoints
+                    // logger.info("dataDebugFromClient: " + dataDebugFromClient.getCurrentBrColl());
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).putBrColl(debugMessage.getFunctionId(), dataDebugFromClient.getCurrentBrColl());
                     this.collectBreakpointEvents(processFlowGeneratorId, debugMessage.getFunctionId());
                     break;
@@ -159,7 +160,9 @@ public class DebuggerController {
         if (j == null) return;
 
         Set<String> keySet = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrColl().keySet();
+        // logger.info("collectBreakpointEvents: " + keySet);
         for (String funcKey : keySet) {
+            // logger.info("collect: " + funcKey);
             String[] functions = funcKey.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
             String currentClassName = functions[0].trim();
             String currentMethodName = functions[1].trim();
@@ -174,11 +177,16 @@ public class DebuggerController {
 
                                 // filter based on source code & stageList
                                 Map<String, Map<Integer, String>> sourceMap = DebuggerUtils.getSourceMap(processFlowGeneratorId);
+                                // logger.info("source key: " + sourceMap.keySet());
+                                // logger.info("sourceMap: " + sourceMap);
                                 String sourceLineCode = DebuggerConstant.EMPTY_STRING;
                                 for (Location loc : locationList) {
+                                    String sourcePath = loc.sourcePath().replaceAll("\\\\", "/");
+                                    // logger.info("source path(" + loc.lineNumber() + "): " + sourcePath);
                                     // check, if source code is exist
                                     if (!sourceMap.containsKey(loc.sourcePath())) continue;
                                     sourceLineCode = sourceMap.get(loc.sourcePath()).get(loc.lineNumber());
+                                    // logger.info("sourceLineCode(" + loc.lineNumber() + "): " + sourceLineCode);
                                     if (sourceLineCode == null || DebuggerConstant.EMPTY_STRING.equals(sourceLineCode))
                                         continue;
 
@@ -193,6 +201,7 @@ public class DebuggerController {
 
                                     ChainingBreakpointRequest chainingBreakpointRequest = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey);
                                     if (chainingBreakpointRequest == null) {
+                                        // logger.info("create breakpoint: " + filterKey);
                                         chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
                                             logger.info("be: " + be);
                                             try {
