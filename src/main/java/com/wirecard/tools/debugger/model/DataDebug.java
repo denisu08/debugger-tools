@@ -2,6 +2,7 @@ package com.wirecard.tools.debugger.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wirecard.tools.debugger.common.DebuggerConstant;
+import com.wirecard.tools.debugger.common.GlobalVariables;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 
@@ -180,6 +181,7 @@ public class DataDebug {
         this.connect = false;
         this.clb = 0;
         this.cpb = "xx";
+        this.breakpointEvents.clear();
         try {
             if (this.jdiScript != null || this.jdiScript.vm().process().isAlive()) getJdiScript().vm().dispose();
         } catch (Exception ex) {

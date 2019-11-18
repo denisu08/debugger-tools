@@ -2,7 +2,7 @@ import {Component, Input, OnInit} from '@angular/core';
 import {NgbActiveModal} from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
-  selector: 'add-variable-modal',
+  selector: 'app-variable-modal',
   templateUrl: './add-variable-modal.component.html',
   styleUrls: ['./add-variable-modal.component.css']
 })

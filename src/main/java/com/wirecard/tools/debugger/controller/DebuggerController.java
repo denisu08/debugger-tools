@@ -93,6 +93,9 @@ public class DebuggerController {
                     runCommand = false;
                     break;
                 case NEXT:
+                    GlobalVariables.jdiContainer.get(processFlowGeneratorId).putBrColl(debugMessage.getFunctionId(), dataDebugFromClient.getCurrentBrColl());
+                    this.collectBreakpointEvents(processFlowGeneratorId, debugMessage.getFunctionId());
+
                     String nextFilterKey = this.getNextFilterKey(GlobalVariables.jdiContainer.get(processFlowGeneratorId).getCpb());
                     ChainingBreakpointRequest breakpointRequest = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(debugMessage.getFunctionId()).get(nextFilterKey);
                     if (breakpointRequest != null) {
@@ -106,7 +109,7 @@ public class DebuggerController {
                 case RESUME:
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript().vm().resume();
                     break;
-                case SET_VARIABLE:
+                case SET_VARIABLE: // variables
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCustVar(dataDebugFromClient.getCustVar());
                     if (!DebuggerConstant.DEFAULT_POINTER_BREAKPOINT.equals(GlobalVariables.jdiContainer.get(processFlowGeneratorId).getCpb())) {
                         this.queryCustomVariables(processFlowGeneratorId, GlobalVariables.currentState.get(processFlowGeneratorId).getCurrentEvent());
@@ -114,7 +117,7 @@ public class DebuggerController {
                         runCommand = false;
                     }
                     break;
-                case SET_BREAKPOINT:
+                case SET_BREAKPOINT: // breakpoints
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).putBrColl(debugMessage.getFunctionId(), dataDebugFromClient.getCurrentBrColl());
                     this.collectBreakpointEvents(processFlowGeneratorId, debugMessage.getFunctionId());
                     break;
