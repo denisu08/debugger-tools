@@ -165,11 +165,12 @@ public class DebuggerController {
             // logger.info("collect: " + funcKey);
             String[] functions = funcKey.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
             String currentClassName = functions[0].trim();
+            // String currentClassName = String.format("%sserviceimpl", tmpClassName);
             String currentMethodName = functions[1].trim();
 
             Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName(currentMethodName).stream()
                     .filter(m -> m.location() != null && m.location().declaringType() != null
-                            && m.location().declaringType().name() != null && m.location().declaringType().name().contains(currentClassName))
+                            && m.location().declaringType().name() != null && m.location().declaringType().name().toLowerCase().contains(currentClassName.toLowerCase()))
                     .forEach(m -> {
                         if (GlobalVariables.jdiContainer.containsKey(processFlowGeneratorId)) {
                             try {
@@ -184,8 +185,8 @@ public class DebuggerController {
                                     String sourcePath = loc.sourcePath().replaceAll("\\\\", "/");
                                     // logger.info("source path(" + loc.lineNumber() + "): " + sourcePath);
                                     // check, if source code is exist
-                                    if (!sourceMap.containsKey(loc.sourcePath())) continue;
-                                    sourceLineCode = sourceMap.get(loc.sourcePath()).get(loc.lineNumber());
+                                    if (!sourceMap.containsKey(sourcePath)) continue;
+                                    sourceLineCode = sourceMap.get(sourcePath).get(loc.lineNumber());
                                     // logger.info("sourceLineCode(" + loc.lineNumber() + "): " + sourceLineCode);
                                     if (sourceLineCode == null || DebuggerConstant.EMPTY_STRING.equals(sourceLineCode))
                                         continue;
@@ -314,7 +315,7 @@ public class DebuggerController {
         String[] functions = fParam.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
         String functionId = functions[1].trim();
         for (Map map : brCollections) {
-            if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get("name"))) >= 0) {
+            if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get(DebuggerConstant.KEY_DEBUG_NAME))) >= 0) {
                 breakpointSelected = map;
                 break;
             }
