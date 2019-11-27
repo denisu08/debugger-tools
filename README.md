@@ -24,3 +24,43 @@ TASK:
 - Add custom expression watcher.
 - Add break filter by criteria.
 - Class Empty, do nothing, only flag breakpoint
+
+How to build:
+1. gradlew.bat build
+2. gradlew.bat jar
+3. remove (2) tools.jar in bundle build
+4. insert tool_38 into build jar
+
+
+Pseudocode 
+
+generateNode:
+if type == group {
+    if(groupType == condition) {
+        loop details
+        call generateNodeCondition();   // need parameter condition append
+        condition << rules
+        start
+            call generateNode();   // need parameter condition append
+        end
+    } else if(groupType == loop) {
+        loop details
+        start
+            call generateNode();   // need parameter condition append
+        end
+    } else if(groupType == loopWithPaging) {
+        loop details
+        start
+            call generateNode();   // need parameter condition append
+        end
+    } else if(groupType == multithread) {
+        loop details
+        start
+            call generateNode();   // need parameter condition append
+        end       
+    }
+} else {    // single
+    createNode()
+} 
+
+createNode:
