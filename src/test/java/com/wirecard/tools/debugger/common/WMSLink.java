@@ -25,6 +25,20 @@ public class WMSLink {
         System.out.println(toString());
     }
 
+    public Map convertToMap() {
+        Map map = new HashMap();
+        map.put("id", this.getId());
+        map.put("from", this.getFrom());
+        map.put("tp", this.getTo());
+        map.put("text", this.getText());
+        if (!this.additionalInfo.isEmpty()) {
+            for (Object key : this.additionalInfo.keySet()) {
+                map.put(key, this.additionalInfo.get(key));
+            }
+        }
+        return map;
+    }
+
     public int getId() {
         return id;
     }

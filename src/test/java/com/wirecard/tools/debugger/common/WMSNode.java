@@ -23,6 +23,7 @@ public class WMSNode {
     public WMSNode(int key, String name, String... additionalInfo) {
         this.key = key;
         this.text = name;
+        this.simpleText = name;
         this.additionalInfo = new HashMap();
         if (additionalInfo != null) {
             for (int i = 0; i < additionalInfo.length; i += 2) {
@@ -32,9 +33,31 @@ public class WMSNode {
         System.out.println(toString());
     }
 
+    public Map convertToMap() {
+        Map map = new HashMap();
+        map.put("key", this.getKey());
+        map.put("text", this.getText());
+        map.put("simpleText", this.getSimpleText());
+        if (!this.additionalInfo.isEmpty()) {
+            for (Object key : this.additionalInfo.keySet()) {
+                map.put(key, this.additionalInfo.get(key));
+            }
+        }
+        return map;
+    }
+
     private int key;
     private String text;
+    private String simpleText;
     private Map additionalInfo;
+
+    public String getSimpleText() {
+        return simpleText;
+    }
+
+    public void setSimpleText(String simpleText) {
+        this.simpleText = simpleText;
+    }
 
     public int getKey() {
         return key;
@@ -62,6 +85,6 @@ public class WMSNode {
 
     @Override
     public String toString() {
-        return "\tNode("+key+") \'" + text + "\' " + additionalInfo;
+        return "\tNode(" + key + ") \'" + text + "\' " + additionalInfo;
     }
 }
