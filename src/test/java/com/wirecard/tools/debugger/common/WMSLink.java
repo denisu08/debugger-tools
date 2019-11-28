@@ -67,11 +67,6 @@ public class WMSLink {
 
     @Override
     public String toString() {
-        return "\t\tLink => " +
-                "step=" + id +
-                ", from=" + from +
-                ", to=" + to +
-                ", text='" + text + '\'' +
-                ", additionalInfo=" + additionalInfo;
+        return "\t Link(" + id + ") " + from + " - " + to + " \'" + text + "\' " + additionalInfo;
     }
 }

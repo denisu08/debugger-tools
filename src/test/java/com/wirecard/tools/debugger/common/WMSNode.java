@@ -62,9 +62,6 @@ public class WMSNode {
 
     @Override
     public String toString() {
-        return "\tNode => " +
-                "key=" + key +
-                ", name='" + text + '\'' +
-                ", additionalInfo=" + additionalInfo;
+        return "\tNode("+key+") \'" + text + "\' " + additionalInfo;
     }
 }
