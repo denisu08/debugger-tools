@@ -2,6 +2,7 @@ package com.wirecard.tools.debugger.controller;
 
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
@@ -133,16 +134,40 @@ public class DebuggerController {
                     this.collectBreakpointEvents(processFlowGeneratorId, debugMessage.getFunctionId());
                     break;
                 case LOGGER:
-                    JSch jsch = new JSch();
-                    Session session = jsch.getSession("root", dataDebugFromClient.getIp(), 22);
-                    session.setPassword("password");
-                    session.connect();
-                    ChannelSftp sftp = (ChannelSftp) session.openChannel("sftp");
-                    String pathLoggerFile = String.format("%s/MicroService/%s/jar_run/nohup.out", sftp.getHome(), "5d63ceebf6cbfd62a21c7baf_7008");
-                    try (InputStream is = sftp.get(pathLoggerFile);
-                         InputStreamReader isr = new InputStreamReader(is);
-                         BufferedReader br = new BufferedReader(isr)) {
-                        // read from br
+                    GlobalVariables.jdiContainer.get(processFlowGeneratorId).setListenLogger(dataDebugFromClient.isListenLogger());
+                    if (dataDebugFromClient.isListenLogger()) {
+                        GlobalVariables.jdiContainer.get(processFlowGeneratorId).setUser(dataDebugFromClient.getUser());
+                        GlobalVariables.jdiContainer.get(processFlowGeneratorId).setPassword(dataDebugFromClient.getPassword());
+                        GlobalVariables.jdiContainer.get(processFlowGeneratorId).setLogPath(dataDebugFromClient.getLogPath());
+
+                        JSch jsch = new JSch();
+                        Session session = jsch.getSession(GlobalVariables.jdiContainer.get(processFlowGeneratorId).getUser(), GlobalVariables.jdiContainer.get(processFlowGeneratorId).getIp());
+                        session.setPassword(GlobalVariables.jdiContainer.get(processFlowGeneratorId).getPassword());
+                        Hashtable<String, String> config = new Hashtable<String, String>();
+                        config.put("StrictHostKeyChecking", "no");
+                        session.setConfig(config);
+                        session.connect(15000);
+                        session.setServerAliveInterval(15000);
+
+                        ChannelExec m_channelExec = (ChannelExec) session.openChannel("exec");
+                        // String cmd = "tail -f /root/MicroService/processflow_bologinflow_1.0_7001/jar_run/nohup.out";
+                        String cmd = String.format("tail -f %s", GlobalVariables.jdiContainer.get(processFlowGeneratorId).getLogPath());
+                        m_channelExec.setCommand(cmd);
+                        InputStream m_in = m_channelExec.getInputStream();
+                        m_channelExec.connect();
+                        BufferedReader m_bufferedReader = new BufferedReader(new InputStreamReader(m_in));
+                        while (GlobalVariables.jdiContainer.get(processFlowGeneratorId).isListenLogger()) {
+                            if (m_bufferedReader.ready()) {
+                                String line = m_bufferedReader.readLine();
+                                messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.LOGGER_PREFIX + line);
+                            }
+                            Thread.sleep(100);
+                        }
+                        m_bufferedReader.close();
+                        m_channelExec.sendSignal("SIGINT");
+                        m_channelExec.disconnect();
+                        session.disconnect();
+                        logger.info("exit logger");
                     }
                     break;
                 default:

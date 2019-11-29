@@ -11,7 +11,11 @@ import java.util.stream.Collectors;
 
 public class DataDebug {
 
+    private String user;
+    private String password;
     private String ip;
+    private String logPath;
+    private boolean isListenLogger = false;
     private int port;
     private boolean connect;
     private boolean mute;
@@ -30,9 +34,42 @@ public class DataDebug {
     private JDIScript jdiScript;
 
     public DataDebug() {
+        this.user = "";
         this.brColl = new HashMap<>();
         this.breakpointEvents = new HashMap<>();
         this.clear();
+    }
+
+    public boolean isListenLogger() {
+        return isListenLogger;
+    }
+
+    public void setListenLogger(boolean listenLogger) {
+        isListenLogger = listenLogger;
+    }
+
+    public String getLogPath() {
+        return logPath;
+    }
+
+    public void setLogPath(String logPath) {
+        this.logPath = logPath;
+    }
+
+    public String getUser() {
+        return user;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getCpb() {
@@ -193,6 +230,8 @@ public class DataDebug {
     public String toString() {
         return "DataDebug{" +
                 "ip='" + ip + '\'' +
+                ", user=" + user +
+                ", password=" + password +
                 ", port=" + port +
                 ", connect=" + connect +
                 ", mute=" + mute +
