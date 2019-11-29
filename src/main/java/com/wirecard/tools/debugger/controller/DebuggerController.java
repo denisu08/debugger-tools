@@ -2,6 +2,9 @@ package com.wirecard.tools.debugger.controller;
 
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
 import com.sun.jdi.*;
 import com.sun.jdi.event.BreakpointEvent;
 import com.wirecard.tools.debugger.common.DebuggerConstant;
@@ -22,6 +25,9 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -125,6 +131,19 @@ public class DebuggerController {
                 case MUTE:
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).setMute(dataDebugFromClient.isMute());
                     this.collectBreakpointEvents(processFlowGeneratorId, debugMessage.getFunctionId());
+                    break;
+                case LOGGER:
+                    JSch jsch = new JSch();
+                    Session session = jsch.getSession("root", dataDebugFromClient.getIp(), 22);
+                    session.setPassword("password");
+                    session.connect();
+                    ChannelSftp sftp = (ChannelSftp) session.openChannel("sftp");
+                    String pathLoggerFile = String.format("%s/MicroService/%s/jar_run/nohup.out", sftp.getHome(), "5d63ceebf6cbfd62a21c7baf_7008");
+                    try (InputStream is = sftp.get(pathLoggerFile);
+                         InputStreamReader isr = new InputStreamReader(is);
+                         BufferedReader br = new BufferedReader(isr)) {
+                        // read from br
+                    }
                     break;
                 default:
                     break;
@@ -314,7 +333,7 @@ public class DebuggerController {
         Map breakpointSelected = null;
         String[] functions = fParam.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
         String functionId = functions[1].trim();
-        if(brCollections != null) {
+        if (brCollections != null) {
             for (Map map : brCollections) {
                 if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get(DebuggerConstant.KEY_DEBUG_NAME))) >= 0) {
                     breakpointSelected = map;

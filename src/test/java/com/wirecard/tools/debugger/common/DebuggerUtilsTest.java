@@ -3,11 +3,18 @@ package com.wirecard.tools.debugger.common;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
 import org.json.simple.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.StringUtils;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,6 +42,43 @@ public class DebuggerUtilsTest {
     }
 
     @Test
+    public void testTailLogger() throws Exception {
+        String usr = "root";
+        String host = "10.10.230.203";
+        String password = "password";
+        JSch jsch = new JSch();
+        Session session = jsch.getSession(usr, host);
+        String pwd = password;
+        session.setPassword(pwd);
+        Hashtable<String, String> config = new Hashtable<String, String>();
+        config.put("StrictHostKeyChecking", "no");
+        session.setConfig(config);
+        session.connect(15000);
+        session.setServerAliveInterval(15000);
+
+
+        ChannelExec m_channelExec = (ChannelExec) session.openChannel("exec");
+        String cmd = "tail -f /root/MicroService/processflow_bologinflow_1.0_7001/jar_run/nohup.out";
+        m_channelExec.setCommand(cmd);
+        InputStream m_in = m_channelExec.getInputStream();
+        m_channelExec.connect();
+        BufferedReader m_bufferedReader = new BufferedReader(new InputStreamReader(m_in));
+        boolean needToRead = true;
+        while (needToRead) {
+            if (m_bufferedReader.ready()) {
+                String line = m_bufferedReader.readLine();
+                System.out.println(line);
+            }
+            Thread.sleep(100);
+        }
+        m_bufferedReader.close();
+        m_channelExec.sendSignal("SIGINT");
+        m_channelExec.disconnect();
+        session.disconnect();
+        System.out.println("exit");
+    }
+
+    // @Test
     public void testGenerateNode() throws JsonProcessingException {
         List<Map> nodeDataFunctions = new ArrayList<>();
         List<Map> linkDataFunctions = new ArrayList<>();

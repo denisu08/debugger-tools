@@ -2,7 +2,7 @@ package com.wirecard.tools.debugger.model;
 
 public class DebugMessage {
     public enum CommandType {
-        CONNECT, DISCONNECT, RESUME, NEXT, MUTE, SET_BREAKPOINT, SET_VARIABLE, SYNC
+        CONNECT, DISCONNECT, RESUME, NEXT, MUTE, SET_BREAKPOINT, SET_VARIABLE, SYNC, LOGGER
     }
 
     private CommandType messageType;

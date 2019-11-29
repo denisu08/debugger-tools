@@ -37,6 +37,7 @@ dependencies {
     compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
     compile group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
     compile group: 'org.jd', name: 'jd-core', version: '1.1.1'
+    compile group: 'com.jcraft', name: 'jsch', version: '0.1.55'
 
     compile project(':jdiscript')
     compile files(org.gradle.internal.jvm.Jvm.current().toolsJar)
