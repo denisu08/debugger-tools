@@ -314,10 +314,12 @@ public class DebuggerController {
         Map breakpointSelected = null;
         String[] functions = fParam.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
         String functionId = functions[1].trim();
-        for (Map map : brCollections) {
-            if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get(DebuggerConstant.KEY_DEBUG_NAME))) >= 0) {
-                breakpointSelected = map;
-                break;
+        if(brCollections != null) {
+            for (Map map : brCollections) {
+                if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get(DebuggerConstant.KEY_DEBUG_NAME))) >= 0) {
+                    breakpointSelected = map;
+                    break;
+                }
             }
         }
         return breakpointSelected;
