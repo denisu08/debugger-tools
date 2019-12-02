@@ -44,7 +44,7 @@ public class DebuggerUtilsTest {
     @Test
     public void testTailLogger() throws Exception {
         String usr = "root";
-        String host = "10.10.230.203";
+        String host = "10.10.230.202";
         String password = "password";
         JSch jsch = new JSch();
         Session session = jsch.getSession(usr, host);
@@ -58,7 +58,7 @@ public class DebuggerUtilsTest {
 
 
         ChannelExec m_channelExec = (ChannelExec) session.openChannel("exec");
-        String cmd = "tail -f /root/MicroService/processflow_bologinflow_1.0_7001/jar_run/nohup.out";
+        String cmd = "tail -f /root/MicroService/processflow_pcratmandbranchnetworkflow_1.0_4073/jar_run/nohup.out";
         m_channelExec.setCommand(cmd);
         InputStream m_in = m_channelExec.getInputStream();
         m_channelExec.connect();

@@ -2,12 +2,10 @@ package com.wirecard.tools.debugger.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wirecard.tools.debugger.common.DebuggerConstant;
-import com.wirecard.tools.debugger.common.GlobalVariables;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DataDebug {
 
@@ -15,7 +13,7 @@ public class DataDebug {
     private String password;
     private String ip;
     private String logPath;
-    private boolean isListenLogger = false;
+    private boolean listenLogger = false;
     private int port;
     private boolean connect;
     private boolean mute;
@@ -41,11 +39,11 @@ public class DataDebug {
     }
 
     public boolean isListenLogger() {
-        return isListenLogger;
+        return listenLogger;
     }
 
     public void setListenLogger(boolean listenLogger) {
-        isListenLogger = listenLogger;
+        this.listenLogger = listenLogger;
     }
 
     public String getLogPath() {
