@@ -66,6 +66,7 @@ public class TailSSHThread extends Thread {
             messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.ERROR_PREFIX + ex.getMessage());
         }
         logger.info("stop logger");
+        messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.LOGGER_PREFIX + "Stop listen console");
     }
 
     public void start() {
