@@ -26,7 +26,7 @@ public class TailSSHThread extends Thread {
         this.threadName = name;
         this.processFlowGeneratorId = processFlowGeneratorId;
         this.messagingTemplate = messagingTemplate;
-        System.out.println("Creating " + threadName);
+        logger.info("Creating " + threadName);
     }
 
     public void run() {
@@ -41,11 +41,13 @@ public class TailSSHThread extends Thread {
             session.setServerAliveInterval(15000);
 
             ChannelExec m_channelExec = (ChannelExec) session.openChannel("exec");
-            // String cmd = "tail -f /root/MicroService/processflow_bologinflow_1.0_7001/jar_run/nohup.out";
-            String cmd = format("tail -10f %s", GlobalVariables.jdiContainer.get(processFlowGeneratorId).getLogPath());
+            String cmd = format("tail -0f %s", GlobalVariables.jdiContainer.get(processFlowGeneratorId).getLogPath());
             m_channelExec.setCommand(cmd);
             InputStream m_in = m_channelExec.getInputStream();
             m_channelExec.connect();
+
+            messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.LOGGER_PREFIX + "Listen console output at: " + GlobalVariables.jdiContainer.get(processFlowGeneratorId).getIp());
+
             BufferedReader m_bufferedReader = new BufferedReader(new InputStreamReader(m_in));
             while (GlobalVariables.jdiContainer.get(processFlowGeneratorId).isListenLogger()) {
                 if (m_bufferedReader.ready()) {
@@ -61,12 +63,13 @@ public class TailSSHThread extends Thread {
         } catch (Exception ex) {
             ex.printStackTrace();
             logger.error(ex.getMessage(), ex);
+            messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.ERROR_PREFIX + ex.getMessage());
         }
-        logger.info("exit logger");
+        logger.info("stop logger");
     }
 
     public void start() {
-        System.out.println("Starting " + threadName);
+        logger.info("Starting " + threadName);
         if (t == null) {
             t = new Thread(this, threadName);
             t.start();
