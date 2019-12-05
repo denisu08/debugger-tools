@@ -1,5 +1,6 @@
 package com.wirecard.tools.debugger.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jcraft.jsch.ChannelExec;
@@ -18,6 +19,7 @@ import com.wirecard.tools.debugger.jdiscript.util.VMSocketAttacher;
 import com.wirecard.tools.debugger.model.CurrentState;
 import com.wirecard.tools.debugger.model.DataDebug;
 import com.wirecard.tools.debugger.model.DebugMessage;
+import com.wirecard.tools.debugger.utils.compressor.LZString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -73,7 +75,7 @@ public class DebuggerController {
             switch (debugMessage.getType()) {
                 case SYNC:
                     if (GlobalVariables.jdiContainer.containsKey(processFlowGeneratorId)) {
-                        messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+                        messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), this.serializeData(processFlowGeneratorId));
                     }
                     runCommand = false;
                     break;
@@ -91,7 +93,7 @@ public class DebuggerController {
                     }
 
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).setConnect(true);
-                    messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+                    messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), this.serializeData(processFlowGeneratorId));
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript().run();
                     runCommand = false;
                     break;
@@ -121,7 +123,7 @@ public class DebuggerController {
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCustVar(dataDebugFromClient.getCustVar());
                     if (GlobalVariables.jdiContainer.get(processFlowGeneratorId).getCpb() != null && !DebuggerConstant.DEFAULT_POINTER_BREAKPOINT.equals(GlobalVariables.jdiContainer.get(processFlowGeneratorId).getCpb())) {
                         this.queryCustomVariables(processFlowGeneratorId, GlobalVariables.currentState.get(processFlowGeneratorId).getCurrentEvent());
-                        messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+                        messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), this.serializeData(processFlowGeneratorId));
                         runCommand = false;
                     }
                     break;
@@ -151,12 +153,16 @@ public class DebuggerController {
 
             if (runCommand) {
                 GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCpb(DebuggerConstant.DEFAULT_POINTER_BREAKPOINT);
-                messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+                messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), this.serializeData(processFlowGeneratorId));
             }
         } catch (Exception ex) {
             ex.printStackTrace();
             messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.ERROR_PREFIX + ex.getMessage());
         }
+    }
+
+    private String serializeData(String processFlowGeneratorId) throws JsonProcessingException {
+        return LZString.compressToBase64(om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
     }
 
     private void detachConnection(final String processFlowGeneratorId) {
@@ -166,7 +172,7 @@ public class DebuggerController {
                 // no remove data & source code
                 // GlobalVariables.jdiContainer.remove(processFlowGeneratorId);
                 // DebuggerUtils.removeSourceMap(processFlowGeneratorId);
-                messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+                messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), this.serializeData(processFlowGeneratorId));
             } catch (Exception e) {
                 e.printStackTrace();
                 messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.ERROR_PREFIX + e.getMessage());
@@ -251,7 +257,7 @@ public class DebuggerController {
                                                 // query custom variables
                                                 this.queryCustomVariables(processFlowGeneratorId, be);
                                                 GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCpb(filterKey);
-                                                messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), om.writeValueAsString(GlobalVariables.jdiContainer.get(processFlowGeneratorId)));
+                                                messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), this.serializeData(processFlowGeneratorId));
 
                                                 // stop, to the next breakpoint
                                                 j.vm().suspend();
