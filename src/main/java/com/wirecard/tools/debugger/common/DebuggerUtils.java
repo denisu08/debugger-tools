@@ -7,17 +7,21 @@ import com.wirecard.tools.debugger.printer.PlainTextPrinter;
 import org.jd.core.v1.model.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import javax.validation.constraints.NotNull;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.StringReader;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -81,8 +85,9 @@ public class DebuggerUtils {
 
     public synchronized static Map<String, Map<Integer, String>> getSourceMap(String processFlowGeneratorId, String sourceJarPath) throws Exception {
         Map<String, Map<Integer, String>> sourceDecompilerMap = GlobalVariables.sourceMap.get(processFlowGeneratorId);
+        Map<String, String> mapContextClassname = new HashMap<>();
 
-        if (sourceDecompilerMap == null && sourceJarPath != null) {
+        // if (sourceDecompilerMap == null && sourceJarPath != null) {
             sourceDecompilerMap = new HashMap<>();
             Path filejarPath = Paths.get(sourceJarPath);
             logger.info("decompiler is starting (" + filejarPath.toString() + ")");
@@ -90,7 +95,7 @@ public class DebuggerUtils {
             FileInputStream inputStream = new FileInputStream(filejarPath.toFile());
 
             try (InputStream is = inputStream) {
-                ZipLoader loader = new ZipLoader(is);
+                ZipLoader loader = new ZipLoader(is, filejarPath.getFileName().toString());
                 CounterPrinter printer = new CounterPrinter();
                 HashMap<String, Integer> statistics = new HashMap<>();
                 HashMap<String, Object> configuration = new HashMap<>();
@@ -101,6 +106,7 @@ public class DebuggerUtils {
                 message.setHeader("loader", loader);
                 message.setHeader("printer", printer);
                 message.setHeader("configuration", configuration);
+
 
                 for (String path : loader.getMap().keySet()) {
                     if (path.endsWith(".class") && (path.indexOf('$') == -1)) {
@@ -140,15 +146,42 @@ public class DebuggerUtils {
                         while ((sourceLine = br.readLine()) != null) {
                             sourceLineCodeMap.put(lineNumber++, sourceLine);
                         }
+
                         sourceDecompilerMap.put(newKeyPath, sourceLineCodeMap);
+                    } else if (path.contains("applicationContext-services.xml")) {
+                        // Get Document Builder
+                        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                        DocumentBuilder builder = factory.newDocumentBuilder();
+
+                        StringBuffer xmlStringBuilder = new StringBuffer(new String(loader.getMap().get(path)));
+                        ByteArrayInputStream input = new ByteArrayInputStream(xmlStringBuilder.toString().getBytes("UTF-8"));
+
+                        // Load the input XML document, parse it and return an instance of the
+                        // Document class.
+                        Document document = builder.parse(input);
+                        Element root = document.getDocumentElement();
+                        if(root.getNodeName().equalsIgnoreCase("beans")) {
+                            NodeList nList = root.getElementsByTagName("bean");
+                            for (int temp = 0; temp < nList.getLength(); temp++) {
+                                Node nNode = nList.item(temp);
+                                if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+                                    Element eElement = (Element) nNode;
+                                    String newKeyPath = eElement.getAttribute("class");
+                                    mapContextClassname.put(String.format("**%s**", eElement.getAttribute("id")), newKeyPath);
+                                }
+                            }
+                        }
                     }
                 }
             }
+
+            GlobalVariables.builtinClassMap.put(processFlowGeneratorId, mapContextClassname);
+
             long endTime = System.nanoTime();
             long durationInMillis = TimeUnit.NANOSECONDS.toMillis((endTime - startTime));  // Total execution time in nano seconds
             logger.info(String.format("decompiler has done in %s ( " + filejarPath.toString() + ")", durationInMillis + "ms"));
             GlobalVariables.sourceMap.put(processFlowGeneratorId, sourceDecompilerMap);
-        }
+        // }
 
         return sourceDecompilerMap;
     }

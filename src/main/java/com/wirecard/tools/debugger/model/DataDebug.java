@@ -90,11 +90,15 @@ public class DataDebug {
         return brColl;
     }
 
-    public Set<String> getBrClasses() {
+    public Set<String> getBrClasses(Map<String, String> builtinClassMap) {
         Set<String> result = new HashSet<>();
         if (this.brColl != null) {
             for (String key : this.brColl.keySet()) {
-                result.add(key.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM)[0].trim());
+                String _clazzName = key.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM)[0].trim();
+                if(_clazzName.contains("**") && builtinClassMap != null && !builtinClassMap.isEmpty()) {
+                    _clazzName = builtinClassMap.get(_clazzName);
+                }
+                result.add(_clazzName);
             }
         }
         return result;

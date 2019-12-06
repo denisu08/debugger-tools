@@ -15,6 +15,7 @@ import java.util.Map;
 public class GlobalVariables {
     public static Map<String, DataDebug> jdiContainer = new HashMap();
     public static Map<String, Map<String, Map<Integer, String>>> sourceMap = new HashMap<>();
+    public static Map<String, Map<String, String>> builtinClassMap = new HashMap<>();
     public static Map<String, CurrentState> currentState = new HashMap<>();
 
     public static DeserializeClassFileProcessor deserializer = new DeserializeClassFileProcessor();

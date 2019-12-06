@@ -13,11 +13,11 @@ import java.util.zip.ZipInputStream;
 public class ZipLoader implements Loader {
     protected ConcurrentHashMap<String, byte[]> map = new ConcurrentHashMap();
 
-    public ZipLoader(InputStream is) throws LoaderException {
-        this.loadLibs(is);
+    public ZipLoader(InputStream is, String parentName) throws LoaderException {
+        this.loadLibs(is, parentName);
     }
 
-    private void loadLibs(InputStream is) {
+    private void loadLibs(InputStream is, String parentName) {
         byte[] buffer = new byte[1024 * 2];
 
         try (ZipInputStream zis = new ZipInputStream(is)) {
@@ -34,10 +34,12 @@ public class ZipLoader implements Loader {
                     }
 
                     if (ze.getName().endsWith(".jar")) {
-                        this.loadLibs(new ByteArrayInputStream(out.toByteArray()));
+                        this.loadLibs(new ByteArrayInputStream(out.toByteArray()), ze.getName());
                     } else {
                         if(ze.getName().contains(DebuggerConstant.FILTER_CLASS_DECOMPILE)) {
                             map.put(ze.getName(), out.toByteArray());
+                        } else if(ze.getName().contains(DebuggerConstant.FILTER_APPLICATION_CONTEXT)) {
+                            map.put(String.format("%s-%s", parentName, ze.getName()), out.toByteArray());
                         }
                     }
                 }

@@ -189,10 +189,12 @@ public class DebuggerController {
         for (String funcKey : keySet) {
             // logger.info("collect: " + funcKey);
             String[] functions = funcKey.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
-            String currentClassName = functions[0].trim();
-            // String currentClassName = String.format("%sserviceimpl", tmpClassName);
+            String tmpClassName = functions[0].trim();
+            if(tmpClassName.contains("**")) {
+                tmpClassName = GlobalVariables.builtinClassMap.get(processFlowGeneratorId).get(tmpClassName);
+            }
+            String currentClassName = tmpClassName;
             String currentMethodName = functions[1].trim();
-
             Consumer<ReferenceType> setConstructBrks = rt -> rt.methodsByName(currentMethodName).stream()
                     .filter(m -> m.location() != null && m.location().declaringType() != null
                             && m.location().declaringType().name() != null && m.location().declaringType().name().toLowerCase().contains(currentClassName.toLowerCase()))
@@ -292,7 +294,7 @@ public class DebuggerController {
                         }
                     });
 
-            Set<String> listClasses = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrClasses();
+            Set<String> listClasses = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrClasses(GlobalVariables.builtinClassMap.get(processFlowGeneratorId));
             Set<String> classUnique = new HashSet<>();
             j.vm().allClasses().forEach(c -> {
                 if (!c.name().contains("$$") && listClasses.stream().anyMatch(entry -> c.name().toLowerCase().contains(entry.toLowerCase())) && classUnique.add(c.name())) {
