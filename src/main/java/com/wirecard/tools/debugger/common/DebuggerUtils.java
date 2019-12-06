@@ -87,7 +87,7 @@ public class DebuggerUtils {
         Map<String, Map<Integer, String>> sourceDecompilerMap = GlobalVariables.sourceMap.get(processFlowGeneratorId);
         Map<String, String> mapContextClassname = new HashMap<>();
 
-        // if (sourceDecompilerMap == null && sourceJarPath != null) {
+        if (sourceDecompilerMap == null && sourceJarPath != null) {
             sourceDecompilerMap = new HashMap<>();
             Path filejarPath = Paths.get(sourceJarPath);
             logger.info("decompiler is starting (" + filejarPath.toString() + ")");
@@ -181,7 +181,7 @@ public class DebuggerUtils {
             long durationInMillis = TimeUnit.NANOSECONDS.toMillis((endTime - startTime));  // Total execution time in nano seconds
             logger.info(String.format("decompiler has done in %s ( " + filejarPath.toString() + ")", durationInMillis + "ms"));
             GlobalVariables.sourceMap.put(processFlowGeneratorId, sourceDecompilerMap);
-        // }
+        }
 
         return sourceDecompilerMap;
     }

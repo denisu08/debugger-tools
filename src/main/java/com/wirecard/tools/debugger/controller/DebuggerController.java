@@ -190,7 +190,8 @@ public class DebuggerController {
             // logger.info("collect: " + funcKey);
             String[] functions = funcKey.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
             String tmpClassName = functions[0].trim();
-            if(tmpClassName.contains("**")) {
+            String originalClassName = tmpClassName;
+            if (tmpClassName.contains("**")) {
                 tmpClassName = GlobalVariables.builtinClassMap.get(processFlowGeneratorId).get(tmpClassName);
             }
             String currentClassName = tmpClassName;
@@ -208,7 +209,9 @@ public class DebuggerController {
                                 // logger.info("source key: " + sourceMap.keySet());
                                 // logger.info("sourceMap: " + sourceMap);
                                 String sourceLineCode = DebuggerConstant.EMPTY_STRING;
+                                int sourceLineCounter = 0;
                                 for (Location loc : locationList) {
+                                    sourceLineCounter++;
                                     String sourcePath = loc.sourcePath().replaceAll("\\\\", "/");
                                     // logger.info("source path(" + loc.lineNumber() + "): " + sourcePath);
                                     // check, if source code is exist
@@ -219,13 +222,30 @@ public class DebuggerController {
                                         continue;
 
                                     // analyze requirement filter
-                                    if (this.filterKeyBySourceLineCode(processFlowGeneratorId, functionId, sourceLineCode) == null)
-                                        continue;
+                                    String pFilterKey = "";
+                                    Map tmpSelectedBreakpoint = null;
+                                    if (originalClassName.contains("**")) {
+                                        if (sourceLineCounter == 1) {
+                                            pFilterKey = "onStart";
+                                            tmpSelectedBreakpoint = this.filterKeyByBuiltin(processFlowGeneratorId, functionId, "onStart");
+                                        } else if (sourceLineCounter == locationList.size()) {
+                                            pFilterKey = "onEnd";
+                                            tmpSelectedBreakpoint = this.filterKeyByBuiltin(processFlowGeneratorId, functionId, "onEnd");
+                                        } else {
+                                            continue;
+                                        }
+                                        if (tmpSelectedBreakpoint == null) continue;
+                                    } else {
+                                        if (this.filterKeyBySourceLineCode(processFlowGeneratorId, functionId, sourceLineCode) == null)
+                                            continue;
 
-                                    // create breakpoints, if there are no breakpoint in globalVariables
-                                    final Map selectedBreakpoint = this.filterKeyBySourceLineCode(processFlowGeneratorId, functionId, sourceLineCode);
-                                    if (selectedBreakpoint == null) continue;
-                                    String filterKey = String.format(DebuggerConstant.DEBUGGER_FORMAT_CODE, functionId, selectedBreakpoint.get(DebuggerConstant.KEY_DEBUG_LINE));
+                                        // create breakpoints, if there are no breakpoint in globalVariables
+                                        tmpSelectedBreakpoint = this.filterKeyBySourceLineCode(processFlowGeneratorId, functionId, sourceLineCode);
+                                        if (tmpSelectedBreakpoint == null) continue;
+                                        pFilterKey = String.format(DebuggerConstant.DEBUGGER_FORMAT_CODE, functionId, tmpSelectedBreakpoint.get(DebuggerConstant.KEY_DEBUG_LINE));
+                                    }
+                                    final Map selectedBreakpoint = tmpSelectedBreakpoint;
+                                    final String filterKey = pFilterKey;
 
                                     ChainingBreakpointRequest chainingBreakpointRequest = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey);
                                     if (chainingBreakpointRequest == null) {
@@ -282,7 +302,10 @@ public class DebuggerController {
                                     if (GlobalVariables.jdiContainer.get(processFlowGeneratorId).isMute()) {
                                         GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled(false);
                                     } else {
-                                        GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey).setEnabled((Boolean) selectedBreakpoint.getOrDefault(DebuggerConstant.KEY_DEBUG_FLAG, false));
+                                        ChainingBreakpointRequest selectedChainingBR = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBreakpointEvents(functionId).get(filterKey);
+                                        if (selectedChainingBR != null) {
+                                            selectedChainingBR.setEnabled((Boolean) selectedBreakpoint.getOrDefault(DebuggerConstant.KEY_DEBUG_FLAG, false));
+                                        }
                                     }
                                 }
                             } catch (AbsentInformationException aix) {
@@ -344,6 +367,22 @@ public class DebuggerController {
         if (brCollections != null) {
             for (Map map : brCollections) {
                 if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get(DebuggerConstant.KEY_DEBUG_NAME))) >= 0) {
+                    breakpointSelected = map;
+                    break;
+                }
+            }
+        }
+        return breakpointSelected;
+    }
+
+    private Map filterKeyByBuiltin(String processFlowGeneratorId, String fParam, String stageName) {
+        List<Map> brCollections = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrColl(fParam);
+        Map breakpointSelected = null;
+        String[] functions = fParam.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
+        String functionId = functions[1].trim();
+        if (brCollections != null) {
+            for (Map map : brCollections) {
+                if (stageName.equalsIgnoreCase((String) map.get(DebuggerConstant.KEY_DEBUG_NAME))) {
                     breakpointSelected = map;
                     break;
                 }
