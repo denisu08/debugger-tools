@@ -185,6 +185,7 @@ public class DebuggerController {
         if (j == null) return;
 
         Set<String> keySet = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrColl().keySet();
+        Set<String> builtinClassKey = GlobalVariables.builtinClassMap.get(processFlowGeneratorId).keySet();
         // logger.info("collectBreakpointEvents: " + keySet);
         for (String funcKey : keySet) {
             // logger.info("collect: " + funcKey);
@@ -193,6 +194,15 @@ public class DebuggerController {
             String originalClassName = tmpClassName;
             if (tmpClassName.contains("**")) {
                 tmpClassName = GlobalVariables.builtinClassMap.get(processFlowGeneratorId).get(tmpClassName);
+                if(tmpClassName == null) {
+                    String checkName = functions[0].trim();
+                    for(String key : builtinClassKey) {
+                        if(checkName.contains(key.replaceAll("\\*\\*", ""))) {
+                            tmpClassName = GlobalVariables.builtinClassMap.get(processFlowGeneratorId).get(key);
+                            break;
+                        }
+                    }
+                }
             }
             String currentClassName = tmpClassName;
             String currentMethodName = functions[1].trim();
@@ -363,12 +373,14 @@ public class DebuggerController {
         List<Map> brCollections = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrColl(fParam);
         Map breakpointSelected = null;
         String[] functions = fParam.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM);
-        String functionId = functions[1].trim();
-        if (brCollections != null) {
-            for (Map map : brCollections) {
-                if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get(DebuggerConstant.KEY_DEBUG_NAME))) >= 0) {
-                    breakpointSelected = map;
-                    break;
+        if(functions.length > 1) {
+            String functionId = functions[1].trim();
+            if (brCollections != null) {
+                for (Map map : brCollections) {
+                    if (sourceLineCode.indexOf(String.format("DebuggerUtils.addDebuggerFlag(\"%s#%s\")", functionId, map.get(DebuggerConstant.KEY_DEBUG_NAME))) >= 0) {
+                        breakpointSelected = map;
+                        break;
+                    }
                 }
             }
         }

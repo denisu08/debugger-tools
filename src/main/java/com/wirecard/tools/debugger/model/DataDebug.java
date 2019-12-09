@@ -2,6 +2,7 @@ package com.wirecard.tools.debugger.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wirecard.tools.debugger.common.DebuggerConstant;
+import com.wirecard.tools.debugger.common.GlobalVariables;
 import com.wirecard.tools.debugger.jdiscript.JDIScript;
 import com.wirecard.tools.debugger.jdiscript.requests.ChainingBreakpointRequest;
 
@@ -97,6 +98,16 @@ public class DataDebug {
                 String _clazzName = key.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM)[0].trim();
                 if(_clazzName.contains("**") && builtinClassMap != null && !builtinClassMap.isEmpty()) {
                     _clazzName = builtinClassMap.get(_clazzName);
+                    if(_clazzName == null) {
+                        String checkName = key.split(DebuggerConstant.DEBUGGER_FORMAT_PARAM)[0].trim();
+                        Set<String> builtinClassKey = builtinClassMap.keySet();
+                        for(String builtinKey : builtinClassKey) {
+                            if(checkName.contains(builtinKey.replaceAll("\\*\\*", ""))) {
+                                _clazzName = builtinClassMap.get(builtinKey);
+                                break;
+                            }
+                        }
+                    }
                 }
                 result.add(_clazzName);
             }
