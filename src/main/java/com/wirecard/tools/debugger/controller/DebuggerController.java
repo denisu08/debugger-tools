@@ -220,6 +220,8 @@ public class DebuggerController {
                                 // logger.info("sourceMap: " + sourceMap);
                                 String sourceLineCode = DebuggerConstant.EMPTY_STRING;
                                 int sourceLineCounter = 0;
+                                boolean findStart = false;
+                                boolean findEnd = false;
                                 for (Location loc : locationList) {
                                     sourceLineCounter++;
                                     String sourcePath = loc.sourcePath().replaceAll("\\\\", "/");
@@ -234,11 +236,13 @@ public class DebuggerController {
                                     // analyze requirement filter
                                     String pFilterKey = "";
                                     Map tmpSelectedBreakpoint = null;
-                                    if (originalClassName.contains("**")) {
-                                        if (sourceLineCounter == 1) {
+                                    if (originalClassName.contains("**") && (!findStart || !findEnd)) {
+                                        if (!findStart && sourceLineCounter == 1) {
+                                            findStart = true;
                                             pFilterKey = "onStart";
                                             tmpSelectedBreakpoint = this.filterKeyByBuiltin(processFlowGeneratorId, functionId, "onStart");
-                                        } else if (sourceLineCounter == locationList.size()) {
+                                        } else if (!findEnd && (sourceLineCode.contains("return ") || sourceLineCounter == locationList.size())) {
+                                            findEnd = true;
                                             pFilterKey = "onEnd";
                                             tmpSelectedBreakpoint = this.filterKeyByBuiltin(processFlowGeneratorId, functionId, "onEnd");
                                         } else {
@@ -343,7 +347,6 @@ public class DebuggerController {
     }
 
     private void queryCustomVariables(final String processFlowGeneratorId, BreakpointEvent be) {
-        // example: "testKeren".length()
         Map<String, String> customVariables = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getCustVar();
         for (String key : customVariables.keySet()) {
             try {
