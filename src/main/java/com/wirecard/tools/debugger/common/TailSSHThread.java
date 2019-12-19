@@ -41,7 +41,7 @@ public class TailSSHThread extends Thread {
             session.setServerAliveInterval(15000);
 
             ChannelExec m_channelExec = (ChannelExec) session.openChannel("exec");
-            String cmd = format("tail -0f %s", GlobalVariables.jdiContainer.get(processFlowGeneratorId).getLogPath());
+            String cmd = format("tail -100f %s", GlobalVariables.jdiContainer.get(processFlowGeneratorId).getLogPath());
             m_channelExec.setCommand(cmd);
             InputStream m_in = m_channelExec.getInputStream();
             m_channelExec.connect();
@@ -49,10 +49,18 @@ public class TailSSHThread extends Thread {
             messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.LOGGER_PREFIX + "Listen console output at: " + GlobalVariables.jdiContainer.get(processFlowGeneratorId).getIp());
 
             BufferedReader m_bufferedReader = new BufferedReader(new InputStreamReader(m_in));
+            String previousLog = "";
             while (GlobalVariables.jdiContainer.get(processFlowGeneratorId).isListenLogger()) {
                 if (m_bufferedReader.ready()) {
+                    boolean hasValue = previousLog != null && !"".equals(previousLog);
                     String line = m_bufferedReader.readLine();
-                    messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.LOGGER_PREFIX + line);
+                    if((line.contains(" [ERROR] ") || line.contains(" [INFO ] ") || line.contains(" [DEBUG] ")) && hasValue) {
+                        messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), DebuggerConstant.LOGGER_PREFIX + previousLog);
+                        previousLog = line;
+                    } else {
+                        if(hasValue) previousLog += "\n";
+                        previousLog += line;
+                    }
                 }
                 Thread.sleep(100);
             }

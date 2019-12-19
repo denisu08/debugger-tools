@@ -266,6 +266,8 @@ public class DebuggerController {
                                         // logger.info("create breakpoint: " + filterKey);
                                         chainingBreakpointRequest = j.breakpointRequest(loc, be -> {
                                             logger.info("be: " + be);
+                                            // List<Map> funcParamMap = GlobalVariables.jdiContainer.get(processFlowGeneratorId).getBrColl(functionId);
+
                                             try {
                                                 // start - grab system variables
                                                 // get field current class
