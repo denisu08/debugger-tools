@@ -41,7 +41,7 @@ public class TailSSHThread extends Thread {
             session.setServerAliveInterval(15000);
 
             ChannelExec m_channelExec = (ChannelExec) session.openChannel("exec");
-            String cmd = format("tail -100f %s", GlobalVariables.jdiContainer.get(processFlowGeneratorId).getLogPath());
+            String cmd = format("tail -0f %s", GlobalVariables.jdiContainer.get(processFlowGeneratorId).getLogPath());
             m_channelExec.setCommand(cmd);
             InputStream m_in = m_channelExec.getInputStream();
             m_channelExec.connect();
