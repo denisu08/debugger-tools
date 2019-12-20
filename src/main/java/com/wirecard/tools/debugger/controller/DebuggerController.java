@@ -117,6 +117,7 @@ public class DebuggerController {
                     runCommand = false;
                     break;
                 case RESUME:
+                    GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCpb(DebuggerConstant.DEFAULT_POINTER_BREAKPOINT);
                     GlobalVariables.jdiContainer.get(processFlowGeneratorId).getJdiScript().vm().resume();
                     break;
                 case SET_VARIABLE: // variables
@@ -152,7 +153,6 @@ public class DebuggerController {
             }
 
             if (runCommand) {
-                GlobalVariables.jdiContainer.get(processFlowGeneratorId).setCpb(DebuggerConstant.DEFAULT_POINTER_BREAKPOINT);
                 messagingTemplate.convertAndSend(format(DebuggerConstant.DEBUGGER_CHANNEL_FORMAT, processFlowGeneratorId), this.serializeData(processFlowGeneratorId));
             }
         } catch (Exception ex) {
