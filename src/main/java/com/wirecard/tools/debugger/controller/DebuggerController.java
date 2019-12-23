@@ -239,12 +239,20 @@ public class DebuggerController {
                                     if (originalClassName.contains("**") && (!findStart || !findEnd)) {
                                         if (!findStart && sourceLineCounter == 1) {
                                             findStart = true;
-                                            pFilterKey = "onStart";
                                             tmpSelectedBreakpoint = this.filterKeyByBuiltin(processFlowGeneratorId, functionId, "onStart");
+                                            if(tmpSelectedBreakpoint != null) {
+                                                pFilterKey = String.format(DebuggerConstant.DEBUGGER_FORMAT_CODE, "onStart", tmpSelectedBreakpoint.get(DebuggerConstant.KEY_DEBUG_LINE));
+                                            } else {
+                                                continue;
+                                            }
                                         } else if (!findEnd && (sourceLineCode.contains("return ") || sourceLineCounter == locationList.size())) {
                                             findEnd = true;
-                                            pFilterKey = "onEnd";
                                             tmpSelectedBreakpoint = this.filterKeyByBuiltin(processFlowGeneratorId, functionId, "onEnd");
+                                            if(tmpSelectedBreakpoint != null) {
+                                                pFilterKey = String.format(DebuggerConstant.DEBUGGER_FORMAT_CODE, "onEnd", tmpSelectedBreakpoint.get(DebuggerConstant.KEY_DEBUG_LINE));
+                                            } else {
+                                                continue;
+                                            }
                                         } else {
                                             continue;
                                         }
